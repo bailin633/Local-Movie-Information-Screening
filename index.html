@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>本地影视资源分辨率筛查</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="path-selection">
+            <input type="text" id="path-input" placeholder="选择路径" readonly>
+            <button id="select-path">选择</button>
+        </div>
+        <!-- 添加进度条和加载提示 -->
+        <div id="loading-container" class="loading-container" style="display: none;">
+            <div class="progress-bar">
+                <div id="progress" class="progress"></div>
+            </div>
+            <p id="loading-text" class="loading-text">加载中 (0%)</p>
+        </div>
+
+        <div class="main-content">
+            <div class="video-overview">
+                <h2>视频概览</h2>
+                <table id="video-table">
+                    <thead>
+                        <tr>
+                            <th class="name-column no-select">名称</th>
+                            <th class="resolution-column no-select">分辨率</th>
+                            <th class="framerate-column no-select">帧率</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 视频列表将在这里动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="resizer" id="resizer"></div>
+            <div class="video-info">
+                <h2 class="no-select">视频详细信息</h2>
+                <div id="video-details">
+                    <p id="video-name"></p>
+                    <p id="video-resolution"></p>
+                    <p id="video-frame-rate"></p>
+                    <p id="video-size"></p>
+                    <p id="video-duration"></p>
+                    <!-- 可以根据需要添加更多信息 -->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="./js/renderer.js"></script>
+</body>
+</html>

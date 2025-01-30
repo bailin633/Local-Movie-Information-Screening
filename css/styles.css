@@ -1,0 +1,78 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f0f0f0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.path-selection {
+    padding: 20px;
+    background-color: #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+#path-input {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+#select-path {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.main-content {
+    display: flex;
+    height: calc(100vh - 140px);
+}
+
+.file-list, .log-output {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.file-list {
+    border-right: 1px solid #dee2e6;
+}
+
+h2 {
+    margin-top: 0;
+    color: #343a40;
+}
+
+#file-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#file-list li {
+    padding: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+#log-content {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 10px;
+    height: calc(100% - 60px);
+    overflow-y: auto;
+}
