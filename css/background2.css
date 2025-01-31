@@ -1,0 +1,197 @@
+/* 在文件开头添加这个样式 */
+.container {
+    position: relative;
+    z-index: 1;
+}
+
+/* 主内容区域 */
+.main-content {
+    display: flex;
+    height: calc(100vh - 140px);
+    position: relative;
+    padding: 20px;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    z-index: 1; /* 确保主内容区域的 z-index 较低 */
+}
+
+/* 视频概览和视频详细信息共享样式 */
+.video-overview, .video-info {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 25px;
+    margin: 0 10px;
+    overflow: auto;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.video-overview:hover, .video-info:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* 分隔条样式 */
+.resizer {
+    width: 10px;
+    background-color: #ddd;
+    cursor: col-resize;
+    transition: background-color 0.3s;
+    flex: 0 0 auto; /* 防止 resizer 被压缩 */
+}
+
+.resizer:hover, .resizer.active {
+    background-color: #bbb;
+}
+/* 添加这个样式来防止文本选择 */
+.resizing {
+    user-select: none;
+}
+
+/* 确保视频概览和视频详细信息区域不会干扰拖动 */
+.video-overview, .video-info {
+    pointer-events: auto;
+}
+
+/* 拖动时禁用文本选择 */
+body.resizing {
+    user-select: none;
+    cursor: col-resize;
+}
+
+/* 标题样式 */
+.video-overview h2, .video-info h2 {
+    color: #2c3e50;
+    font-size: 1.6em;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #4a90e2;
+    padding-bottom: 12px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+}
+
+/* 表格样式 */
+/* 表格样式 */
+#video-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 8px;
+}
+
+#video-table th, #video-table td {
+    padding: 12px 15px;
+    text-align: left;
+    transition: none;
+    transform: none;
+}
+
+/* 表格头样式 */
+#video-table th {
+    background: #f0f4f8;
+    color: #2c3e50;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #dfe6e9;
+}
+
+/* 移除表格行的悬停效果 */
+#video-table tr {
+    background-color: rgba(255, 255, 255, 0.8);
+    transition: none;
+}
+
+#video-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.8);
+    transform: none;
+    box-shadow: none;
+}
+
+#video-table td {
+    border-bottom: 1px solid #ecf0f1;
+}
+
+/* 确保没有任何动画效果 */
+#video-table, #video-table *, #video-table *:before, #video-table *:after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+}
+/* 表格行选中效果 */
+#video-table tr.selected {
+    background-color: rgba(52, 152, 219, 0.2); /* 浅蓝色背景 */
+    box-shadow: 0 0 10px rgba(52, 152, 219, 0.3); /* 轻微发光效果 */
+}
+
+/* 确保选中效果在深色主题下也有效 */
+@media (prefers-color-scheme: dark) {
+    #video-table tr.selected {
+        background-color: rgba(52, 152, 219, 0.4); /* 深色主题下稍微加深背景色 */
+        box-shadow: 0 0 10px rgba(52, 152, 219, 0.5); /* 加强发光效果 */
+    }
+}
+
+/* 视频详细信息样式 */
+#video-details p {
+    margin: 12px 0;
+    padding: 12px 15px;
+    background-color: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    border-left: 3px solid #3498db; /* 左侧蓝色边框 */
+}
+
+#video-details p:hover {
+    background-color: #f5f9ff;
+    transform: translateX(5px);
+}
+
+/* 深色主题适配 */
+@media (prefers-color-scheme: dark) {
+    .main-content {
+        background: rgba(30, 39, 46, 0.8);
+        overflow: hidden; /* 防止内容溢出 */
+    }
+
+    .video-overview, .video-info {
+        flex: 1;
+        overflow: auto; /* 允许内容滚动 */
+        min-width: 20%; /* 设置最小宽度 */
+    }
+
+    .video-overview h2, .video-info h2 {
+        color: #ecf0f1;
+        border-bottom-color: #3498db;
+    }
+
+    #video-table th {
+        background: #2c3e50;
+        color: #ecf0f1;
+        border-bottom-color: #34495e;
+    }
+
+    #video-table tr {
+        background-color: rgba(52, 73, 94, 0.6);
+    }
+
+    #video-table tr:hover {
+        background-color: rgba(52, 73, 94, 0.8);
+    }
+
+    #video-table td {
+        border-bottom-color: #34495e;
+    }
+
+    #video-details p {
+        background-color: rgba(52, 73, 94, 0.6);
+        color: #ecf0f1;
+        border-left-color: #3498db;
+    }
+
+    #video-details p:hover {
+        background-color: rgba(52, 73, 94, 0.8);
+    }
+}

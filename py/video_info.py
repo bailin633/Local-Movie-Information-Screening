@@ -10,11 +10,19 @@ def get_video_info(file_path):
     fps = video.get(cv2.CAP_PROP_FPS)
     width = int(video.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(video.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    frame_count = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = frame_count / fps if fps > 0 else 0
     video.release()
+
+    file_size = os.path.getsize(file_path)
+    file_size_mb = file_size / (1024 * 1024)  # 转换为MB
+
     return {
         "name": os.path.basename(file_path),
         "resolution": f"{width}x{height}",
-        "frameRate": f"{fps:.2f}"
+        "frameRate": fps,  # 返回数值
+        "duration": duration,  # 返回数值
+        "fileSize": file_size_mb  # 返回数值（MB）
     }
 
 def scan_directory(dir_path):
@@ -42,6 +50,8 @@ def scan_directory(dir_path):
                     print(f"处理文件: {video_info['name']}")
                     print(f"  分辨率: {video_info['resolution']}")
                     print(f"  帧率: {video_info['frameRate']}")
+                    print(f"  时长: {video_info['duration']} 秒")
+                    print(f"  文件大小: {video_info['fileSize']} MB")
                     print("-" * 40)
                 except Exception as e:
                     print(f"处理文件 {full_path} 时出错: {str(e)}", file=sys.stderr)

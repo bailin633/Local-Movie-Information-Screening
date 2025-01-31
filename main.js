@@ -6,11 +6,12 @@ require('iconv-lite');
 require('dotenv').config();
 
 // 创建主应用窗口的函数
-function createWindow() {
-    const win = new BrowserWindow({
+let mainWindow;
+
+function createMainWindow() {
+    mainWindow = new BrowserWindow({
         width: 1000,
-        height: 600,
-        // 允许用户自由调整窗口大小
+        height: 650,
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
@@ -18,19 +19,20 @@ function createWindow() {
         }
     });
 
-    win.loadFile('index.html');
-    win.setMenu(null);
+    mainWindow.loadFile('index.html');
+    mainWindow.setMenu(null);
+    mainWindow.webContents.openDevTools();
 
-    // 开发者工具已被注释掉
-    // win.webContents.openDevTools();
 
-    return win;
+    return mainWindow;
 }
 
-// 当 Electron 完成初始化时创建窗口
-let mainWindow;
 app.whenReady().then(() => {
-    mainWindow = createWindow();
+    mainWindow = createMainWindow();
+
+    ipcMain.on('open-settings-window', () => {
+        createSettingsWindow();
+    });
 });
 
 // 当所有窗口关闭时退出应用（Windows & Linux）
@@ -39,6 +41,21 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
+
+function createSettingsWindow() {
+    const settingsWindow = new BrowserWindow({
+        width: 400,
+        height: 300,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+
+    settingsWindow.setMenu(null);
+    settingsWindow.loadFile('settingWindow.html');
+
+}
 
 // 当应用被激活时重新创建窗口（macOS）
 app.on('activate', () => {
@@ -109,7 +126,37 @@ ipcMain.on('scan-directory', (event, dirPath) => {
                 const jsonStart = output.lastIndexOf('\n最终结果:');
                 const jsonString = output.slice(jsonStart).replace('\n最终结果:', '').trim();
                 const videoInfos = JSON.parse(jsonString);
-                event.reply('video-list', videoInfos);
+
+                console.log('Original videoInfos:', JSON.stringify(videoInfos, null, 2));
+
+                function parseFileSize(fileSizeString) {
+                    const match = fileSizeString.match(/^([\d.]+)\s*(\w+)$/);
+                    if (!match) return NaN;
+
+                    const size = parseFloat(match[1]);
+                    const unit = match[2].toLowerCase();
+
+                    const units = {
+                        b: 1,
+                        kb: 1024,
+                        mb: 1024 * 1024,
+                        gb: 1024 * 1024 * 1024,
+                        tb: 1024 * 1024 * 1024 * 1024
+                    };
+
+                    return size * (units[unit] || 1);
+                }
+
+                const processedVideoInfos = videoInfos.map(info => ({
+                    ...info,
+                    frameRate: parseFloat(info.frameRate.toFixed(2)),
+                    duration: parseFloat(info.duration.toFixed(2)),
+                    fileSize: parseFloat(info.fileSize.toFixed(2))
+                }));
+
+                console.log('Processed videoInfos:', JSON.stringify(processedVideoInfos, null, 2));
+
+                event.reply('video-list', processedVideoInfos);
             } catch (error) {
                 console.error('解析 Python 输出失败:', error);
                 event.reply('video-list', { error: '解析视频信息失败' });
