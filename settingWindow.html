@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>设置</title>
-    <!-- 如果有特定的 CSS，可以在这里引入 -->
+    <link rel="stylesheet" href="css/settingWindow.css">
 </head>
 <body>
     <h1>设置</h1>
-    <!-- 在这里添加设置相关的 HTML 元素 -->
-    <button id="save-settings">保存设置</button>
+    <div class="container">
+        <div class="option">
+            <input type="checkbox" id="organize-by-metadata">
+            <label for="organize-by-metadata">以元数据信息整理</label>
+        </div>
+        <button id="save-settings">保存设置</button>
 
-    <script src="js/settingWindow.js"></script>
+    </div>
+<script src="js/settingWindow.js"></script>
 </body>
-
 </html>

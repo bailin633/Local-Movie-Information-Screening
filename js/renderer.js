@@ -4,6 +4,8 @@ document.getElementById('settings-button').addEventListener('click', () => {
     ipcRenderer.send('open-settings-window');
 });
 
+// This function is now moved inside the DOMContentLoaded event listener
+
 document.addEventListener('DOMContentLoaded', () => {
     const selectPathButton = document.getElementById('select-path');
     const pathInput = document.getElementById('path-input');
@@ -14,6 +16,52 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingContainer = document.getElementById('loading-container');
     const progressBar = document.getElementById('progress');
     const loadingText = document.getElementById('loading-text');
+    const resolutionOptions = document.querySelectorAll('input[name="resolution"]');
+    const videoTableBody = document.getElementById('video-table').querySelector('tbody');
+
+    let allVideos = []; // 存储所有视频信息
+    let currentResolution = '全部'; // 默认选中全部分辨率
+
+    function filterVideosByResolution(resolution) {
+        // 定义分辨率范围
+        const resolutionRanges = {
+            '全部': { min: 0, max: Infinity },
+            '1080P': { min: 1920, max: 1920 },
+            '2K': { min: 2048, max: 2560 },
+            '4K': { min: 3840, max: 4096 }
+        };
+
+        const range = resolutionRanges[resolution];
+
+        // 清空当前视频列表
+        videoTableBody.innerHTML = '';
+
+        // 过滤并显示符合条件的视频
+        allVideos.forEach(info => {
+            const videoWidth = parseInt(info.resolution.split('x')[0], 10);
+            if (videoWidth >= range.min && videoWidth <= range.max) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${truncateName(info.name)}</td>
+                    <td>${info.resolution}</td>
+                    <td>${info.frameRate ? info.frameRate.toFixed(2) + ' fps' : 'N/A'}</td>
+                `;
+                row.addEventListener('click', () => {
+                    document.querySelectorAll('#video-table tr').forEach(r => r.classList.remove('selected'));
+                    row.classList.add('selected');
+                    displayVideoInfo(info);
+                });
+                videoTableBody.appendChild(row);
+            }
+        });
+    }
+
+    resolutionOptions.forEach(option => {
+        option.addEventListener('change', () => {
+            currentResolution = option.value;
+            filterVideosByResolution(currentResolution);
+        });
+    });
 
     let isResizing = false;
     let initialX;
@@ -84,7 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     ipcRenderer.on('video-list', (_, videos) => {
-        createVideoTable(videos);
+        allVideos = videos; // 存储所有视频信息
+        // 触发初始筛选（显示所有视频）
+        filterVideosByResolution('全部');
         loadingContainer.style.display = 'none';
     });
 });
@@ -137,11 +187,17 @@ function truncateName(name, maxLength = 12) {
 
 function displayVideoInfo(video) {
     const videoDetails = document.getElementById('video-details');
+    
+    // 格式化码率
+    const formattedBitrate = video.bitrate != null ? `${video.bitrate.toFixed(2)} Mbps` : 'N/A';
+    
     videoDetails.innerHTML = `
         <p><strong>文件名：</strong>${video.name}</p>
-        <p><strong>分辨率：</strong>${video.resolution || 'N/A'}</p>
+        <p><strong>分辨率：</strong>${video.resolution || 'N/A'} | <strong>码率：</strong>${formattedBitrate}</p>
         <p><strong>帧率：</strong>${video.frameRate ? video.frameRate.toFixed(2) + ' fps' : 'N/A'}</p>
         <p><strong>大小：</strong>${formatFileSize(video.fileSize)}</p>
         <p><strong>时长：</strong>${formatDuration(video.duration)}</p>
     `;
+    
+    console.log('Video info:', video); // 添加这行来调试
 }

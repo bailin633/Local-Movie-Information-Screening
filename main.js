@@ -10,7 +10,7 @@ let mainWindow;
 
 function createMainWindow() {
     mainWindow = new BrowserWindow({
-        width: 1000,
+        width: 1200,
         height: 650,
         autoHideMenuBar: true,
         webPreferences: {
@@ -22,7 +22,6 @@ function createMainWindow() {
     mainWindow.loadFile('index.html');
     mainWindow.setMenu(null);
     mainWindow.webContents.openDevTools();
-
 
     return mainWindow;
 }
@@ -54,13 +53,12 @@ function createSettingsWindow() {
 
     settingsWindow.setMenu(null);
     settingsWindow.loadFile('settingWindow.html');
-
 }
 
 // 当应用被激活时重新创建窗口（macOS）
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-        mainWindow = createWindow();
+        mainWindow = createMainWindow();
     }
 });
 
@@ -151,7 +149,8 @@ ipcMain.on('scan-directory', (event, dirPath) => {
                     ...info,
                     frameRate: parseFloat(info.frameRate.toFixed(2)),
                     duration: parseFloat(info.duration.toFixed(2)),
-                    fileSize: parseFloat(info.fileSize.toFixed(2))
+                    fileSize: parseFloat(info.fileSize.toFixed(2)),
+                    bitrate: info.bitrate ? parseFloat((info.bitrate / 1000000).toFixed(2)) : null // 将 bps 转换为 Mbps，如果存在的话
                 }));
 
                 console.log('Processed videoInfos:', JSON.stringify(processedVideoInfos, null, 2));
