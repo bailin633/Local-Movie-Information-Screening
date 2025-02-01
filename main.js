@@ -1,17 +1,17 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
+
 require('iconv-lite');
 require('dotenv').config();
 
-// 创建主应用窗口的函数
 let mainWindow;
 
 function createMainWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
-        height: 650,
+        height: 700,
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,
@@ -25,21 +25,6 @@ function createMainWindow() {
 
     return mainWindow;
 }
-
-app.whenReady().then(() => {
-    mainWindow = createMainWindow();
-
-    ipcMain.on('open-settings-window', () => {
-        createSettingsWindow();
-    });
-});
-
-// 当所有窗口关闭时退出应用（Windows & Linux）
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
-});
 
 function createSettingsWindow() {
     const settingsWindow = new BrowserWindow({
@@ -55,14 +40,54 @@ function createSettingsWindow() {
     settingsWindow.loadFile('settingWindow.html');
 }
 
-// 当应用被激活时重新创建窗口（macOS）
+app.whenReady().then(() => {
+    mainWindow = createMainWindow();
+
+    ipcMain.on('open-settings-window', () => {
+        createSettingsWindow();
+    });
+});
+
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         mainWindow = createMainWindow();
     }
 });
 
-// 处理打开文件对话框的 IPC 消息
+ipcMain.on('open-file-location', (event, filePath) => {
+    console.log('Attempting to open file location:', filePath);
+    const dirPath = path.dirname(filePath);
+    shell.openPath(dirPath).then((error) => {
+        if (error) {
+            console.error('Failed to open directory:', error);
+            event.reply('open-file-location-result', { success: false, error: error });
+        } else {
+            console.log('Directory opened successfully');
+            event.reply('open-file-location-result', { success: true });
+        }
+    });
+});
+
+ipcMain.on('open-file-path', (event, filePath) => {
+    console.log('Received open-file-path event with path:', filePath);
+    if (filePath) {
+        const dirPath = path.dirname(filePath);
+        shell.openPath(dirPath).then((error) => {
+            if (error) {
+                console.error('Error opening file path:', error);
+            }
+        });
+    } else {
+        console.warn('Received empty file path');
+    }
+});
+
 ipcMain.on('open-file-dialog', (event) => {
     dialog.showOpenDialog({
         properties: ['openDirectory']
@@ -75,7 +100,6 @@ ipcMain.on('open-file-dialog', (event) => {
     });
 });
 
-// 处理扫描目录的 IPC 消息
 ipcMain.on('scan-directory', (event, dirPath) => {
     const pythonScriptPath = path.join(__dirname, 'py', 'video_info.py');
 
@@ -100,7 +124,6 @@ ipcMain.on('scan-directory', (event, dirPath) => {
         output += chunk;
         console.log(chunk);
 
-        // 检查进度信息
         let match = progressRegex.exec(chunk);
         if (match) {
             let current = parseInt(match[1]);
@@ -126,40 +149,39 @@ ipcMain.on('scan-directory', (event, dirPath) => {
                 const videoInfos = JSON.parse(jsonString);
 
                 console.log('Original videoInfos:', JSON.stringify(videoInfos, null, 2));
-
-                function parseFileSize(fileSizeString) {
-                    const match = fileSizeString.match(/^([\d.]+)\s*(\w+)$/);
-                    if (!match) return NaN;
-
-                    const size = parseFloat(match[1]);
-                    const unit = match[2].toLowerCase();
-
-                    const units = {
-                        b: 1,
-                        kb: 1024,
-                        mb: 1024 * 1024,
-                        gb: 1024 * 1024 * 1024,
-                        tb: 1024 * 1024 * 1024 * 1024
+                
+                const processedVideoInfos = videoInfos.map(info => {
+                    if (!info.path) {
+                        console.warn('Video info missing path:', info);
+                    }
+                    return {
+                        ...info,
+                        frameRate: parseFloat(info.frameRate.toFixed(2)),
+                        duration: parseFloat(info.duration.toFixed(2)),
+                        fileSize: parseFloat(info.fileSize.toFixed(2)),
+                        bitrate: info.bitrate ? parseFloat((info.bitrate / 1000000).toFixed(2)) : null
                     };
-
-                    return size * (units[unit] || 1);
-                }
-
-                const processedVideoInfos = videoInfos.map(info => ({
-                    ...info,
-                    frameRate: parseFloat(info.frameRate.toFixed(2)),
-                    duration: parseFloat(info.duration.toFixed(2)),
-                    fileSize: parseFloat(info.fileSize.toFixed(2)),
-                    bitrate: info.bitrate ? parseFloat((info.bitrate / 1000000).toFixed(2)) : null // 将 bps 转换为 Mbps，如果存在的话
-                }));
-
+                });
+                
                 console.log('Processed videoInfos:', JSON.stringify(processedVideoInfos, null, 2));
-
                 event.reply('video-list', processedVideoInfos);
             } catch (error) {
                 console.error('解析 Python 输出失败:', error);
                 event.reply('video-list', { error: '解析视频信息失败' });
             }
+        }
+    });
+});
+
+ipcMain.on('play-video', (event, filePath) => {
+    console.log('Attempting to play video:', filePath);
+    shell.openPath(filePath).then((error) => {
+        if (error) {
+            console.error('Failed to open video:', error);
+            event.reply('play-video-result', { success: false, error: error });
+        } else {
+            console.log('Video opened successfully');
+            event.reply('play-video-result', { success: true });
         }
     });
 });

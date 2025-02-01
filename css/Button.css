@@ -28,55 +28,67 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-/* 添加点击波纹效果 */
-#select-path::after, #settings-button::after {
-    content: '';
-    position: absolute;
-    background-color: rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    width: 100px;
-    height: 100px;
-    margin-top: -50px;
-    margin-left: -50px;
-    top: 50%;
-    left: 50%;
-    animation: ripple 1s;
-    opacity: 0;
-}
-
-#select-path:focus:not(:active)::after, #settings-button:focus:not(:active)::after {
-    animation: ripple 1s;
-}
-
-@keyframes ripple {
-    0% {
-        transform: scale(0);
-        opacity: 1;
-    }
-    100% {
-        transform: scale(4);
-        opacity: 0;
-    }
-}
-
 /* 设置按钮特定样式 */
 #settings-button {
-    padding: 0; /* 移除内边距 */
-    width: 48px; /* 保持固定宽度 */
-    height: 48px; /* 保持固定高度 */
+    padding: 0;
+    width: 48px;
+    height: 48px;
     display: inline-flex;
     justify-content: center;
     align-items: center;
-    margin-left: 10px; /* 与选择按钮保持一定距离 */
-    border-radius: 50%; /* 使按钮变成圆形 */
+    margin-left: 10px;
+    border-radius: 50%;
 }
 
 #settings-button::before {
-    content: "\2699"; /* Unicode for a gear icon */
-    font-size: 24px; /* 调整图标大小 */
+    content: "\2699";
+    font-size: 24px;
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     height: 100%;
+}
+
+/* 新添加的视频操作按钮样式 */
+.video-action-button {
+    padding: 10px 20px;
+    background: #f0f0f0;
+    color: #333;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    outline: none;
+    margin: 5px;
+}
+
+.video-action-button:hover {
+    background: #e8e8e8;
+    border-color: #c0c0c0;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.video-action-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+/* 为每个视频操作按钮添加特定的图标 */
+#open-file-path::before {
+    content: "\1F4C1";
+    margin-right: 5px;
+    color: #4a4a4a;
+}
+
+#play-video::before {
+    content: "\25B6";
+    margin-right: 5px;
+    color: #4a4a4a;
 }

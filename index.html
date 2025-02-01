@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="./css/Button.css">
     <link rel="stylesheet" href="./css/input.css">
     <link rel="stylesheet" href="./css/background2.css">
-    <!-- 移除这里的 settingWindow.js 引用 -->
 </head>
 <body>
 <div id="background"></div>
@@ -54,6 +53,11 @@
                     <p id="video-duration"></p>
                     <!-- 可以根据需要添加更多信息 -->
                 </div>
+                <!-- 将按钮移到这里 -->
+                <div class="video-actions">
+                    <button id="open-file-path" class="video-action-button">打开文件路径</button>
+                    <button id="play-video" class="video-action-button">播放视频</button>
+                </div>
             </div>
             <!-- 添加单选框 -->
             <div class="resolution-options">
@@ -65,7 +69,7 @@
             </div>
         </div>
     </div>
+
     <script src="./js/renderer.js"></script>
-    <!-- 移除这里的 settingWindow.js 引用 -->
 </body>
 </html>
