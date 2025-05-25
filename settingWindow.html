@@ -61,11 +61,11 @@
                 <div class="setting-group">
                     <h3>文件管理</h3>
                     <div class="setting-item">
-                        <label class="setting-label">
-                            <input type="checkbox" id="organize-by-metadata">
+                        <label class="setting-label disabled" title="该功能正在开发中，敬请期待">
+                            <input type="checkbox" id="organize-by-metadata" disabled>
                             <span class="checkmark"></span>
                             <div class="label-content">
-                                <span class="label-title">按元数据信息整理</span>
+                                <span class="label-title">按元数据信息整理 <span class="feature-status">(功能开发中)</span></span>
                                 <span class="label-description">根据视频的元数据信息自动整理文件</span>
                             </div>
                         </label>
@@ -110,52 +110,36 @@
                 <div class="setting-group">
                     <h3>支持的文件格式</h3>
                     <div class="setting-item">
-                        <label>视频文件扩展名</label>
-                        <div class="extension-list">
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-mp4" checked>
-                                <span class="checkmark"></span>
-                                .mp4
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-mkv" checked>
-                                <span class="checkmark"></span>
-                                .mkv
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-avi" checked>
-                                <span class="checkmark"></span>
-                                .avi
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-mov" checked>
-                                <span class="checkmark"></span>
-                                .mov
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-wmv">
-                                <span class="checkmark"></span>
-                                .wmv
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-flv">
-                                <span class="checkmark"></span>
-                                .flv
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-webm">
-                                <span class="checkmark"></span>
-                                .webm
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-m4v">
-                                <span class="checkmark"></span>
-                                .m4v
-                            </label>
-                        </div>
-                        <div class="custom-extension">
-                            <input type="text" id="custom-extensions" placeholder="自定义扩展名 (用逗号分隔)">
-                            <button id="add-custom-ext" class="btn btn-secondary btn-small">添加</button>
+                        <div class="format-management">
+                            <div class="format-presets">
+                                <label>预设格式:</label>
+                                <div class="preset-buttons">
+                                    <button id="preset-common" class="btn btn-small btn-secondary">常用格式</button>
+                                    <button id="preset-all" class="btn btn-small btn-secondary">全部格式</button>
+                                    <button id="preset-hd" class="btn btn-small btn-secondary">高清格式</button>
+                                    <button id="preset-clear" class="btn btn-small btn-warning">清空</button>
+                                </div>
+                            </div>
+
+                            <div class="format-list">
+                                <label>已启用的格式:</label>
+                                <div id="enabled-formats" class="format-tags">
+                                    <!-- 动态生成的格式标签 -->
+                                </div>
+                            </div>
+
+                            <div class="format-input">
+                                <label>添加新格式:</label>
+                                <div class="input-group">
+                                    <input type="text" id="new-format" placeholder="输入文件扩展名 (如: mp4, mkv)">
+                                    <button id="add-format" class="btn btn-primary btn-small">添加</button>
+                                </div>
+                                <small>支持批量添加，用逗号分隔多个格式</small>
+                            </div>
+
+                            <div class="format-validation">
+                                <div id="format-validation-message" class="validation-message"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -165,11 +149,11 @@
                     <div class="setting-item">
                         <label for="scan-depth">扫描深度</label>
                         <div class="slider-container">
-                            <input type="range" id="scan-depth" min="1" max="10" value="5">
+                            <input type="range" id="scan-depth" min="1" max="10" value="5" class="smooth-slider">
                             <span class="slider-value" id="scan-depth-value">5</span>
                             <span class="slider-label">层</span>
                         </div>
-                        <small>限制子文件夹扫描的最大深度</small>
+                        <small>限制子文件夹扫描的最大深度，建议值：3-7层</small>
                     </div>
 
                     <div class="setting-item">
@@ -196,6 +180,36 @@
                 </div>
 
                 <div class="setting-group">
+                    <h3>FFmpeg/FFprobe 配置</h3>
+                    <div class="setting-item">
+                        <label for="ffmpeg-path">FFmpeg 路径</label>
+                        <div class="input-group">
+                            <input type="text" id="ffmpeg-path" placeholder="自动检测或输入自定义路径">
+                            <button id="browse-ffmpeg" class="btn btn-secondary btn-small">浏览</button>
+                            <button id="detect-ffmpeg" class="btn btn-secondary btn-small">自动检测</button>
+                        </div>
+                        <small>优先使用 F:\Core_1\ffmpeg\bin\，如不存在则使用系统PATH</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <div class="ffmpeg-status">
+                            <div class="status-row">
+                                <span class="status-label">FFmpeg 状态:</span>
+                                <span id="ffmpeg-status" class="status-indicator">检测中...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">FFprobe 状态:</span>
+                                <span id="ffprobe-status" class="status-indicator">检测中...</span>
+                            </div>
+                            <div class="status-row">
+                                <span class="status-label">版本信息:</span>
+                                <span id="ffmpeg-version" class="status-value">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
                     <h3>编码检测</h3>
                     <div class="setting-item">
                         <label class="setting-label">
@@ -211,9 +225,10 @@
                     <div class="setting-item">
                         <label for="ffprobe-timeout">FFprobe 超时时间</label>
                         <div class="input-group">
-                            <input type="number" id="ffprobe-timeout" min="5" max="60" value="10">
+                            <input type="number" id="ffprobe-timeout" min="5" max="60" value="15">
                             <span class="input-suffix">秒</span>
                         </div>
+                        <small>单个文件元数据检测的最大等待时间，推荐值：10-30秒</small>
                     </div>
 
                     <div class="setting-item">
@@ -227,9 +242,20 @@
                         </label>
                     </div>
 
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="detailed-metadata" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">详细元数据提取</span>
+                                <span class="label-description">提取编码格式、分辨率、帧率、比特率等详细信息</span>
+                            </div>
+                        </label>
+                    </div>
+
                     <div class="diagnostic-section">
-                        <button id="test-ffprobe" class="btn btn-primary">测试 FFprobe 可用性</button>
-                        <div id="ffprobe-status" class="status-indicator"></div>
+                        <button id="test-ffprobe" class="btn btn-primary">测试 FFprobe 功能</button>
+                        <button id="refresh-ffmpeg" class="btn btn-secondary">刷新状态</button>
                     </div>
                 </div>
             </section>

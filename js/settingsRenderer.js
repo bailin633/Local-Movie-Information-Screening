@@ -200,8 +200,19 @@ function setupEventListeners() {
         if (valueDisplay) {
             slider.addEventListener('input', (e) => {
                 valueDisplay.textContent = e.target.value;
+
+                // 更新平滑滑块的背景
+                if (e.target.classList.contains('smooth-slider')) {
+                    updateSliderBackground(e.target);
+                }
+
                 markAsChanged();
             });
+
+            // 初始化滑块背景
+            if (slider.classList.contains('smooth-slider')) {
+                updateSliderBackground(slider);
+            }
         }
     });
 
@@ -240,6 +251,12 @@ function setupEventListeners() {
 
     // 特殊功能按钮
     setupSpecialButtons();
+
+    // 格式管理功能
+    setupFormatManagement();
+
+    // FFmpeg管理功能
+    setupFFmpegManagement();
 
     // 键盘快捷键
     document.addEventListener('keydown', handleKeyboardShortcuts);
@@ -1550,11 +1567,31 @@ function setupHelpTooltips() {
 }
 
 /**
+ * 更新滑块背景
+ */
+function updateSliderBackground(slider) {
+    const value = slider.value;
+    const min = slider.min || 0;
+    const max = slider.max || 100;
+    const percentage = ((value - min) / (max - min)) * 100;
+
+    // 创建渐变背景，显示当前进度
+    const gradient = `linear-gradient(to right, #4a90e2 0%, #4a90e2 ${percentage}%, #e9ecef ${percentage}%, #e9ecef 100%)`;
+    slider.style.background = gradient;
+}
+
+/**
  * 初始化所有增强功能
  */
 function initializeEnhancements() {
     setupPathValidation();
     setupHelpTooltips();
+
+    // 初始化所有平滑滑块的背景
+    const smoothSliders = document.querySelectorAll('.smooth-slider');
+    smoothSliders.forEach(slider => {
+        updateSliderBackground(slider);
+    });
 
     // 监听来自主进程的文件系统变化事件
     if (typeof ipcRenderer !== 'undefined' && ipcRenderer.on) {
@@ -1569,9 +1606,9 @@ function initializeEnhancements() {
         });
     }
 
-    // 添加按元数据整理的事件监听
+    // 添加按元数据整理的事件监听（已禁用）
     const organizeCheckbox = document.getElementById('organize-by-metadata');
-    if (organizeCheckbox) {
+    if (organizeCheckbox && !organizeCheckbox.disabled) {
         organizeCheckbox.addEventListener('change', (e) => {
             handleOrganizeByMetadata(e.target.checked);
         });
@@ -1586,6 +1623,334 @@ function updateOrganizeProgress(progress) {
     if (statusEl) {
         statusEl.textContent = `${progress.message} (${progress.percentage}%)`;
         statusEl.className = 'status-text info';
+    }
+}
+
+/**
+ * 设置格式管理功能
+ */
+function setupFormatManagement() {
+    // 预设按钮
+    const presetButtons = {
+        'preset-common': ['.mp4', '.mkv', '.avi', '.mov'],
+        'preset-all': ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.3gp', '.asf'],
+        'preset-hd': ['.mp4', '.mkv', '.mov', '.m4v', '.webm'],
+        'preset-clear': []
+    };
+
+    Object.keys(presetButtons).forEach(buttonId => {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            button.addEventListener('click', () => {
+                applyFormatPreset(presetButtons[buttonId]);
+            });
+        }
+    });
+
+    // 添加格式按钮
+    const addFormatBtn = document.getElementById('add-format');
+    if (addFormatBtn) {
+        addFormatBtn.addEventListener('click', addNewFormat);
+    }
+
+    // 格式输入框回车事件
+    const formatInput = document.getElementById('new-format');
+    if (formatInput) {
+        formatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addNewFormat();
+            }
+        });
+    }
+
+    // 初始化格式显示
+    updateFormatDisplay();
+}
+
+/**
+ * 设置FFmpeg管理功能
+ */
+function setupFFmpegManagement() {
+    // 浏览FFmpeg路径
+    const browseFFmpegBtn = document.getElementById('browse-ffmpeg');
+    if (browseFFmpegBtn) {
+        browseFFmpegBtn.addEventListener('click', browseFFmpegPath);
+    }
+
+    // 自动检测FFmpeg
+    const detectFFmpegBtn = document.getElementById('detect-ffmpeg');
+    if (detectFFmpegBtn) {
+        detectFFmpegBtn.addEventListener('click', detectFFmpegPath);
+    }
+
+    // 刷新FFmpeg状态
+    const refreshFFmpegBtn = document.getElementById('refresh-ffmpeg');
+    if (refreshFFmpegBtn) {
+        refreshFFmpegBtn.addEventListener('click', refreshFFmpegStatus);
+    }
+
+    // 初始化FFmpeg状态检测
+    initializeFFmpegStatus();
+}
+
+/**
+ * 应用格式预设
+ */
+function applyFormatPreset(formats) {
+    currentSettings.supportedExtensions = [...formats];
+    updateFormatDisplay();
+    markAsChanged();
+
+    showValidationMessage(
+        `已应用预设格式: ${formats.length}个格式`,
+        'success'
+    );
+}
+
+/**
+ * 添加新格式
+ */
+function addNewFormat() {
+    const input = document.getElementById('new-format');
+    if (!input) return;
+
+    const formatString = input.value.trim();
+    if (!formatString) {
+        showValidationMessage('请输入文件格式', 'error');
+        return;
+    }
+
+    // 解析格式字符串
+    const formats = formatString.split(',').map(f => {
+        let format = f.trim().toLowerCase();
+        if (!format.startsWith('.')) {
+            format = '.' + format;
+        }
+        return format;
+    });
+
+    // 验证和添加格式
+    const results = {
+        added: [],
+        duplicates: [],
+        invalid: []
+    };
+
+    formats.forEach(format => {
+        if (!validateFormat(format)) {
+            results.invalid.push(format);
+        } else if (currentSettings.supportedExtensions.includes(format)) {
+            results.duplicates.push(format);
+        } else {
+            currentSettings.supportedExtensions.push(format);
+            results.added.push(format);
+        }
+    });
+
+    // 显示结果
+    let message = '';
+    let type = 'success';
+
+    if (results.added.length > 0) {
+        message += `已添加 ${results.added.length} 个格式`;
+    }
+    if (results.duplicates.length > 0) {
+        message += (message ? ', ' : '') + `${results.duplicates.length} 个重复`;
+    }
+    if (results.invalid.length > 0) {
+        message += (message ? ', ' : '') + `${results.invalid.length} 个无效`;
+        type = results.added.length > 0 ? 'warning' : 'error';
+    }
+
+    showValidationMessage(message, type);
+
+    if (results.added.length > 0) {
+        updateFormatDisplay();
+        markAsChanged();
+        input.value = '';
+    }
+}
+
+/**
+ * 移除格式
+ */
+function removeFormat(format) {
+    const index = currentSettings.supportedExtensions.indexOf(format);
+    if (index > -1) {
+        currentSettings.supportedExtensions.splice(index, 1);
+        updateFormatDisplay();
+        markAsChanged();
+        showValidationMessage(`已移除格式: ${format}`, 'success');
+    }
+}
+
+/**
+ * 更新格式显示
+ */
+function updateFormatDisplay() {
+    const container = document.getElementById('enabled-formats');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (currentSettings.supportedExtensions.length === 0) {
+        container.innerHTML = '<div class="format-empty">未启用任何格式</div>';
+        return;
+    }
+
+    currentSettings.supportedExtensions.forEach(format => {
+        const tag = document.createElement('div');
+        tag.className = 'format-tag';
+        tag.innerHTML = `
+            <span>${format}</span>
+            <button class="remove-format" onclick="removeFormat('${format}')" title="移除此格式">×</button>
+        `;
+        container.appendChild(tag);
+    });
+}
+
+/**
+ * 验证格式
+ */
+function validateFormat(format) {
+    if (!format || typeof format !== 'string') return false;
+    if (format.length < 2 || format.length > 10) return false;
+    if (!/^\.[\w\d]+$/.test(format)) return false;
+
+    // 检查常见错误格式
+    const invalidFormats = ['.txt', '.doc', '.pdf', '.jpg', '.png', '.gif'];
+    return !invalidFormats.includes(format);
+}
+
+/**
+ * 显示验证消息
+ */
+function showValidationMessage(message, type = 'info') {
+    const container = document.getElementById('format-validation-message');
+    if (!container) return;
+
+    container.textContent = message;
+    container.className = `validation-message ${type}`;
+
+    // 自动清除消息
+    setTimeout(() => {
+        container.textContent = '';
+        container.className = 'validation-message';
+    }, 3000);
+}
+
+/**
+ * 浏览FFmpeg路径
+ */
+async function browseFFmpegPath() {
+    try {
+        const result = await ipcRenderer.invoke('browse-directory', {
+            title: '选择FFmpeg安装目录',
+            defaultPath: 'F:\\Core_1\\ffmpeg\\bin\\'
+        });
+
+        if (!result.canceled && result.filePaths.length > 0) {
+            const selectedPath = result.filePaths[0];
+            document.getElementById('ffmpeg-path').value = selectedPath;
+
+            // 验证路径
+            const isValid = await ipcRenderer.invoke('validate-ffmpeg-path', selectedPath);
+            if (isValid.valid) {
+                showValidationMessage('FFmpeg路径验证成功', 'success');
+                refreshFFmpegStatus();
+            } else {
+                showValidationMessage(`路径无效: ${isValid.error}`, 'error');
+            }
+        }
+    } catch (error) {
+        console.error('浏览FFmpeg路径失败:', error);
+        showValidationMessage('浏览路径失败', 'error');
+    }
+}
+
+/**
+ * 自动检测FFmpeg路径
+ */
+async function detectFFmpegPath() {
+    try {
+        updateFFmpegStatus('checking', 'checking', '检测中...');
+
+        const result = await ipcRenderer.invoke('detect-ffmpeg-path');
+
+        if (result.found) {
+            document.getElementById('ffmpeg-path').value = result.path;
+            updateFFmpegStatus('available', 'available', result.version);
+            showValidationMessage('FFmpeg自动检测成功', 'success');
+        } else {
+            updateFFmpegStatus('unavailable', 'unavailable', '未找到');
+            showValidationMessage('未找到FFmpeg，请手动指定路径', 'warning');
+        }
+    } catch (error) {
+        console.error('检测FFmpeg失败:', error);
+        updateFFmpegStatus('unavailable', 'unavailable', '检测失败');
+        showValidationMessage('FFmpeg检测失败', 'error');
+    }
+}
+
+/**
+ * 刷新FFmpeg状态
+ */
+async function refreshFFmpegStatus() {
+    try {
+        updateFFmpegStatus('checking', 'checking', '检测中...');
+
+        const status = await ipcRenderer.invoke('get-ffmpeg-status');
+
+        updateFFmpegStatus(
+            status.ffmpegAvailable ? 'available' : 'unavailable',
+            status.ffprobeAvailable ? 'available' : 'unavailable',
+            status.version || '未知版本'
+        );
+    } catch (error) {
+        console.error('刷新FFmpeg状态失败:', error);
+        updateFFmpegStatus('unavailable', 'unavailable', '状态获取失败');
+    }
+}
+
+/**
+ * 初始化FFmpeg状态
+ */
+async function initializeFFmpegStatus() {
+    await refreshFFmpegStatus();
+}
+
+/**
+ * 更新FFmpeg状态显示
+ */
+function updateFFmpegStatus(ffmpegStatus, ffprobeStatus, version) {
+    const ffmpegStatusEl = document.getElementById('ffmpeg-status');
+    const ffprobeStatusEl = document.getElementById('ffprobe-status');
+    const versionEl = document.getElementById('ffmpeg-version');
+
+    if (ffmpegStatusEl) {
+        ffmpegStatusEl.textContent = getStatusText(ffmpegStatus);
+        ffmpegStatusEl.className = `status-indicator ${ffmpegStatus}`;
+    }
+
+    if (ffprobeStatusEl) {
+        ffprobeStatusEl.textContent = getStatusText(ffprobeStatus);
+        ffprobeStatusEl.className = `status-indicator ${ffprobeStatus}`;
+    }
+
+    if (versionEl) {
+        versionEl.textContent = version;
+    }
+}
+
+/**
+ * 获取状态文本
+ */
+function getStatusText(status) {
+    switch (status) {
+        case 'available': return '可用';
+        case 'unavailable': return '不可用';
+        case 'checking': return '检测中...';
+        default: return '未知';
     }
 }
 

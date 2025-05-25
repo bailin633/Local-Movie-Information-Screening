@@ -33,6 +33,11 @@ const PathManager = require('./js/pathManager.js');
 const FileManager = require('./js/fileManager.js');
 const FileWatcher = require('./js/fileWatcher.js');
 
+// 引入新的扫描设置管理模块
+const FFmpegManager = require('./js/ffmpegManager.js');
+const ScanDepthManager = require('./js/scanDepthManager.js');
+const FormatManager = require('./js/formatManager.js');
+
 require('iconv-lite');
 require('dotenv').config();
 
@@ -44,6 +49,11 @@ let allVideos = [];
 const pathManager = new PathManager();
 const fileManager = new FileManager();
 const fileWatcher = new FileWatcher();
+
+// 初始化扫描设置管理器
+const ffmpegManager = new FFmpegManager();
+const scanDepthManager = new ScanDepthManager();
+const formatManager = new FormatManager();
 
 // 设置文件路径
 const settingsPath = path.join(os.homedir(), '.video-scanner-settings.json');
@@ -242,6 +252,79 @@ app.whenReady().then(() => {
     ipcMain.on('search-videos', (event, searchTerm) => {
         const results = searchVideos(searchTerm);
         event.reply('search-results', results);
+    });
+
+    // FFmpeg相关的IPC处理器
+    ipcMain.handle('get-ffmpeg-status', async () => {
+        try {
+            await ffmpegManager.initialize();
+            const status = ffmpegManager.getStatus();
+            return {
+                ffmpegAvailable: status.isAvailable,
+                ffprobeAvailable: status.isAvailable,
+                version: status.version,
+                path: status.ffmpegPath
+            };
+        } catch (error) {
+            console.error('获取FFmpeg状态失败:', error);
+            return {
+                ffmpegAvailable: false,
+                ffprobeAvailable: false,
+                version: null,
+                path: null
+            };
+        }
+    });
+
+    ipcMain.handle('detect-ffmpeg-path', async () => {
+        try {
+            const found = await ffmpegManager.detectFFmpegPath();
+            if (found) {
+                const status = ffmpegManager.getStatus();
+                return {
+                    found: true,
+                    path: status.ffmpegPath,
+                    version: status.version
+                };
+            } else {
+                return {
+                    found: false,
+                    path: null,
+                    version: null
+                };
+            }
+        } catch (error) {
+            console.error('检测FFmpeg路径失败:', error);
+            return {
+                found: false,
+                path: null,
+                version: null,
+                error: error.message
+            };
+        }
+    });
+
+    ipcMain.handle('validate-ffmpeg-path', async (event, customPath) => {
+        try {
+            const isValid = await ffmpegManager.setCustomPath(customPath);
+            if (isValid) {
+                return {
+                    valid: true,
+                    message: 'FFmpeg路径验证成功'
+                };
+            } else {
+                return {
+                    valid: false,
+                    error: '指定路径中未找到有效的FFmpeg'
+                };
+            }
+        } catch (error) {
+            console.error('验证FFmpeg路径失败:', error);
+            return {
+                valid: false,
+                error: error.message
+            };
+        }
     });
 });
 

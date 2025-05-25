@@ -205,6 +205,30 @@ docs/dist/
 .docusaurus/
 
 # ===================================
+# AI Generated Reports and Summaries
+# ===================================
+
+# Exclude all AI-generated markdown files except README.md
+*_REPORT.md
+*_SUMMARY.md
+*_GUIDE.md
+*_IMPLEMENTATION*.md
+*_OPTIMIZATION*.md
+*_VERIFICATION*.md
+*_COMPLETION*.md
+*_CHECKLIST.md
+GITIGNORE_*.md
+SETTINGS_*.md
+SCANNING_*.md
+UI_*.md
+
+# Cleanup scripts (temporary)
+cleanup-build-artifacts.*
+
+# Keep README.md (project documentation)
+!README.md
+
+# ===================================
 # Backup and Archive Files
 # ===================================
 *.bak
