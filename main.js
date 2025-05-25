@@ -130,6 +130,7 @@ function createMainWindow() {
         width: 1200,
         height: 700,
         autoHideMenuBar: true,
+        icon: path.join(__dirname, 'photos', 'NASvideo.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -164,6 +165,7 @@ function createSettingsWindow() {
         parent: mainWindow,
         modal: false,
         autoHideMenuBar: true,
+        icon: path.join(__dirname, 'photos', 'NASvideo.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false

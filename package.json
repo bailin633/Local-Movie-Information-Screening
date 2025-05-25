@@ -1,7 +1,7 @@
 {
-  "name": "core_1",
+  "name": "nas-video-scanner",
   "version": "1.0.1",
-  "description": "An Electron application",
+  "description": "NAS Video Scanner - 本地视频信息扫描器",
   "main": "main.js",
   "scripts": {
     "start": "chcp 65001 && electron .",
@@ -11,10 +11,13 @@
   },
   "keywords": [
     "electron",
-    "desktop",
-    "application"
+    "video",
+    "scanner",
+    "nas",
+    "ffmpeg",
+    "media"
   ],
-  "author": "Your Name",
+  "author": "NAS Video Scanner Team",
   "license": "ISC",
   "dependencies": {
     "chalk": "^5.4.1",
@@ -27,8 +30,8 @@
     "electron-builder": "^24.6.4"
   },
   "build": {
-    "appId": "com.yourcompany.yourappname",
-    "productName": "Your App Name",
+    "appId": "com.nasvideoscanner.app",
+    "productName": "NAS Video Scanner",
     "files": [
       "**/*",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
