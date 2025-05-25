@@ -12,26 +12,26 @@ def test_ffprobe_availability():
         result = subprocess.run(['ffprobe', '-version'], 
                               capture_output=True, text=True, timeout=5)
         if result.returncode == 0:
-            print("‚ú? ffprobe is available")
+            print(" ffprobe is available")
             print(f"Version info: {result.stdout.split()[0:3]}")
             return True
         else:
-            print("‚ù? ffprobe is not working properly")
+            print(" ffprobe is not working properly")
             return False
     except FileNotFoundError:
-        print("‚ù? ffprobe is not installed or not in PATH")
+        print(" ffprobe is not installed or not in PATH")
         return False
     except Exception as e:
-        print(f"‚ù? Error testing ffprobe: {e}")
+        print(f" Error testing ffprobe: {e}")
         return False
 
 def test_codec_detection(file_path):
     """Test codec detection on a specific file"""
     if not os.path.exists(file_path):
-        print(f"‚ù? Test file not found: {file_path}")
+        print(f"Test file not found: {file_path}")
         return
     
-    print(f"\nüîç Testing codec detection on: {file_path}")
+    print(f"\n Testing codec detection on: {file_path}")
     
     try:
         # Test the exact command used in the main script
@@ -66,17 +66,17 @@ def test_codec_detection(file_path):
                     'prores': 'ProRes'
                 }
                 friendly_name = codec_mapping.get(codec_name.lower(), codec_name)
-                print(f"‚ú? Friendly name: {friendly_name}")
+                print(f" Friendly name: {friendly_name}")
             else:
-                print("‚ù? No codec name found in output")
+                print(" No codec name found in output")
         else:
-            print("‚ù? ffprobe failed or returned empty output")
+            print("ffprobe failed or returned empty output")
             
     except Exception as e:
         print(f"‚ù? Error during codec detection: {e}")
 
 def main():
-    print("üß™ Codec Detection Test")
+    print(" Codec Detection Test")
     print("=" * 50)
     
     # Test ffprobe availability

@@ -1,1 +1,247 @@
+# ===================================
+# Electron Application .gitignore
+# ===================================
+
+# ===================================
+# Node.js Dependencies
+# ===================================
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ===================================
+# Electron Build & Distribution
+# ===================================
+
+# Build output directories
+dist/
+build/
+out/
+release/
+app-builds/
+electron-builds/
+
+# Electron packager output
+*-darwin-x64/
+*-linux-x64/
+*-win32-x64/
+*-win32-ia32/
+*-linux-ia32/
+*-linux-arm64/
+*-darwin-arm64/
+
+# Electron builder output
+electron-dist/
+.electron-builder/
+
+# Platform-specific build artifacts
+*.app/
+*.exe
+*.deb
+*.rpm
+*.dmg
+*.pkg
+*.msi
+*.appx
+*.snap
+*.tar.gz
+*.zip
+
+# Auto-generated installers
+*Setup*.exe
+*Installer*.exe
+*-setup-*.exe
+*.AppImage
+
+# ===================================
+# Development Environment
+# ===================================
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ===================================
+# Logs and Debugging
+# ===================================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# ===================================
+# Environment and Configuration
+# ===================================
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local configuration files
+config/local.json
+config/development.json
+config/production.json
+
+# ===================================
+# Cache and Temporary Files
+# ===================================
+
+# npm cache
+.npm/
+
+# Yarn cache
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# ESLint cache
+.eslintcache
+
+# Parcel cache
+.cache/
+.parcel-cache/
+
+# Webpack cache
+.webpack/
+
+# Rollup cache
+.rollup.cache/
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ===================================
+# Application Specific
+# ===================================
+
+# User data and settings (if stored locally)
+user-data/
+app-data/
+settings/
+preferences/
+
+# Video scanner specific
+video-cache/
+scan-results/
+metadata-cache/
+thumbnails/
+
+# FFmpeg binaries (if bundled)
+ffmpeg/
+ffprobe/
+
+# ===================================
+# Security and Sensitive Data
+# ===================================
+
+# API keys and secrets
+secrets/
+*.key
+*.pem
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# ===================================
+# Testing
+# ===================================
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Test results
+test-results/
+junit.xml
+
+# ===================================
+# Documentation Build
+# ===================================
+
+# Generated documentation
+docs/build/
+docs/dist/
+.docusaurus/
+
+# ===================================
+# Backup and Archive Files
+# ===================================
+*.bak
+*.backup
+*.old
+*.orig
+*.rej
+*.swp
+*.tmp
+
+# ===================================
+# Keep These Files (Important!)
+# ===================================
+# The following files should NOT be ignored:
+# - package.json (project dependencies)
+# - package-lock.json (dependency lock file)
+# - main.js (Electron main process)
+# - index.html (main window)
+# - js/ (source code directory)
+# - css/ (stylesheets)
+# - assets/ (images, icons, etc.)
+# - README.md (project documentation)
+# - LICENSE (project license)
+
+# ===================================
+# Platform Specific Additions
+# ===================================
+
+# Windows
+*.lnk
+*.url
+
+# macOS
+.AppleDouble
+.LSOverride
+Icon?
+
+# Linux
+.directory
+*.desktop
