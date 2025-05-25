@@ -1,0 +1,8 @@
+version: 1.0.1
+files:
+  - url: Your-App-Name-Setup-1.0.1.exe
+    sha512: RY4+Ecnes8CbASvohIHC+NjaCYA8407hhC8bdb7OISGIlgpQprsLuMcB3LIUUnXmQCfv6aVWEf9pm0SMFOvGsg==
+    size: 83617176
+path: Your-App-Name-Setup-1.0.1.exe
+sha512: RY4+Ecnes8CbASvohIHC+NjaCYA8407hhC8bdb7OISGIlgpQprsLuMcB3LIUUnXmQCfv6aVWEf9pm0SMFOvGsg==
+releaseDate: '2025-02-03T14:47:19.022Z'

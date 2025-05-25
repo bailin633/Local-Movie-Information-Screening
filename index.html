@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="./css/Button.css">
     <link rel="stylesheet" href="./css/input.css">
     <link rel="stylesheet" href="./css/background2.css">
+    <link rel="stylesheet" href="./css/loading.css">
 </head>
 <body>
 <div id="background"></div>
@@ -18,10 +19,17 @@
             <button id="settings-button"></button>
         </div>
 
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="搜索视频">
+            <button id="search-button">查找</button>
+        </div>
+
         <!-- 添加进度条和加载提示 -->
         <div id="loading-container" class="loading-container" style="display: none;">
-            <div class="progress-bar">
-                <div id="progress" class="progress"></div>
+            <div class="progress-bar-container">
+                <div class="progress-bar">
+                    <div id="progress" class="progress-fill"></div>
+                </div>
             </div>
             <p id="loading-text" class="loading-text">加载中 (0%)</p>
         </div>
@@ -59,14 +67,15 @@
                     <button id="play-video" class="video-action-button">播放视频</button>
                 </div>
             </div>
-            <!-- 添加单选框 -->
-            <div class="resolution-options">
-                <h3>选择分辨率</h3>
-                <label><input type="radio" name="resolution" value="全部" checked> 全部分辨率</label><br>
-                <label><input type="radio" name="resolution" value="1080P"> 1080P</label><br>
-                <label><input type="radio" name="resolution" value="2K"> 2K</label><br>
-                <label><input type="radio" name="resolution" value="4K"> 4K</label>
-            </div>
+        </div>
+
+        <!-- 将分辨率选项移到主内容区域外面 -->
+        <div class="resolution-options">
+            <h3>选择分辨率</h3>
+            <label><input type="radio" name="resolution" value="全部" checked> 全部分辨率</label><br>
+            <label><input type="radio" name="resolution" value="1080P"> 1080P</label><br>
+            <label><input type="radio" name="resolution" value="2K"> 2K</label><br>
+            <label><input type="radio" name="resolution" value="4K"> 4K</label>
         </div>
     </div>
 

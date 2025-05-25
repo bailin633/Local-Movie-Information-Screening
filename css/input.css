@@ -1,36 +1,68 @@
-#path-input {
-    flex-grow: 1;
+.search-container {
+    margin-top: -25px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: stretch; /* 改为 stretch 以确保子元素高度一致 */
+    position: relative;
+}
+
+#search-input {
+    width: calc(50% - 70px);
     padding: 12px 15px;
     font-size: 16px;
     color: #333;
     background-color: #fff;
     border: 2px solid #e0e0e0;
-    border-radius: 8px 0 0 8px;
-    margin-right: 0;
+    border-right: none; /* 移除右边框 */
+    border-radius: 30px 0 0 30px;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     outline: none;
 }
 
-#path-input:focus {
-    border-color: #007bff; /* 使用蓝色替代绿色 */
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25); /* 添加柔和的蓝色阴影 */
+#search-input:focus {
+    border-color: #d0d0d0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
 }
 
-/* 移除之前的动画效果 */
-@keyframes input-focus {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
+#search-button {
+    padding: 10px 20px;
+    background: white;
+    color: #333;
+    border: 2px solid #e0e0e0;
+    border-left: none; /* 移除左边框 */
+    border-radius: 0 30px 30px 0;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    outline: none;
+    position: relative;
+    overflow: hidden;
+    margin-left: -1px; /* 微调以覆盖可能的间隙 */
 }
 
-/* 如果你想保留一些动画效果，可以使用这个更微妙的版本 */
-@keyframes subtle-focus {
-    0% { box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); }
-    50% { box-shadow: 0 4px 8px rgba(0, 123, 255, 0.15); }
-    100% { box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05); }
+#search-button:hover {
+    background: #f8f8f8;
+    border-color: #d0d0d0;
+    /* 移除 transform 属性 */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* 保持与默认状态相同的阴影 */
 }
 
-#path-input:focus {
-    animation: subtle-focus 0.3s ease;
+#search-button:active {
+    /* 移除 transform 属性 */
+    background: #e8e8e8; /* 添加轻微的背景色变化以提供反馈 */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
+
+/* 可选：为搜索按钮添加图标 */
+#search-button::before {
+    content: "\1F50D";
+    margin-right: 5px;
+    font-size: 18px;
+}
+

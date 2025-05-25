@@ -52,30 +52,35 @@ body {
 }
 
 /* 美化输入框 */
+/* 美化输入框 */
+/* 美化输入框 */
+/* 美化输入框 */
 #path-input {
     flex-grow: 1;
     padding: 12px 18px;
     border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    border-radius: 8px 0 0 8px; /* 保留左侧圆角，移除右侧圆角 */
     font-size: 16px;
-    margin-right: 15px;
+    margin-right: 0; /* 移除右侧边距 */
     transition: all 0.3s ease;
     background-color: rgba(255, 255, 255, 0.9);
     box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    outline: none; /* 移除默认的聚焦轮廓 */
+    height: 44px; /* 设置固定高度，确保与按钮高度一致 */
+    box-sizing: border-box; /* 确保padding不会增加总高度 */
 }
 
 #path-input:focus {
     outline: none;
-    border-color: #4CAF50;
-    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2), inset 0 1px 3px rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.15); /* 稍微加深边框颜色 */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1); /* 稍微加深阴影 */
 }
 
 /* 美化选择按钮 */
 #select-path {
     padding: 12px 24px;
-    background-color: #4CAF50;
     color: white;
-    border: none;
+    border-color: #adb5bd;
     border-radius: 8px;
     cursor: pointer;
     font-size: 16px;
@@ -116,6 +121,9 @@ body {
     padding: 20px;
     overflow-y: auto;
     min-width: 200px;
+    /* 添加GPU加速优化 */
+    will-change: flex-basis;
+    transform: translateZ(0);
 }
 
 .resizer {
@@ -123,6 +131,9 @@ body {
     background-color: #ddd;
     cursor: col-resize;
     margin: 0 5px;
+    /* 添加GPU加速优化 */
+    will-change: background-color, transform;
+    transform: translateZ(0);
 }
 
 .video-info {
@@ -130,6 +141,9 @@ body {
     padding: 20px;
     overflow-y: auto;
     min-width: 200px;
+    /* 添加GPU加速优化 */
+    will-change: flex-basis;
+    transform: translateZ(0);
 }
 
 h2 {

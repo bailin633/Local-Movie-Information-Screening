@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置页面预览</title>
+    <link rel="stylesheet" href="css/settingWindow.css">
+    <style>
+        /* 模拟 Electron 环境 */
+        .mock-ipc {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 9999;
+        }
+        
+        /* 添加一些测试数据 */
+        .test-data {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="mock-ipc">
+        📱 设置页面预览模式<br>
+        (模拟 Electron 环境)
+    </div>
+    
+    <div id="background"></div>
+    <div class="settings-container">
+        <!-- 设置页面头部 -->
+        <header class="settings-header">
+            <h1>应用设置</h1>
+            <div class="header-actions">
+                <button id="reset-settings" class="btn btn-secondary" title="重置为默认设置">
+                    <span class="icon">🔄</span>
+                    重置默认
+                </button>
+                <button id="close-settings" class="btn btn-close" title="关闭设置">
+                    <span class="icon">✕</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 设置导航标签 -->
+        <nav class="settings-nav">
+            <button class="nav-tab active" data-tab="general">
+                <span class="icon">⚙️</span>
+                常规设置
+            </button>
+            <button class="nav-tab" data-tab="scanning">
+                <span class="icon">🔍</span>
+                扫描设置
+            </button>
+            <button class="nav-tab" data-tab="appearance">
+                <span class="icon">🎨</span>
+                外观主题
+            </button>
+            <button class="nav-tab" data-tab="performance">
+                <span class="icon">⚡</span>
+                性能优化
+            </button>
+            <button class="nav-tab" data-tab="advanced">
+                <span class="icon">🔧</span>
+                高级设置
+            </button>
+            <button class="nav-tab" data-tab="about">
+                <span class="icon">ℹ️</span>
+                关于应用
+            </button>
+        </nav>
+
+        <!-- 设置内容区域 -->
+        <main class="settings-content">
+            <!-- 常规设置 -->
+            <section id="general-tab" class="tab-content active">
+                <h2>常规设置</h2>
+                
+                <div class="setting-group">
+                    <h3>文件管理</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="organize-by-metadata">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">按元数据信息整理</span>
+                                <span class="label-description">根据视频的元数据信息自动整理文件</span>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="auto-refresh" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">自动刷新列表</span>
+                                <span class="label-description">文件夹内容变化时自动更新视频列表</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>默认路径</h3>
+                    <div class="setting-item">
+                        <label for="default-scan-path">默认扫描目录</label>
+                        <div class="input-group">
+                            <input type="text" id="default-scan-path" placeholder="选择默认扫描目录" value="C:\Users\用户\Videos">
+                            <button id="browse-default-path" class="btn btn-secondary">浏览</button>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label>最近使用的目录</label>
+                        <div class="recent-paths" id="recent-paths">
+                            <div class="recent-path-item">
+                                <span class="recent-path-text">C:\Users\用户\Videos\电影</span>
+                                <button class="recent-path-remove">×</button>
+                            </div>
+                            <div class="recent-path-item">
+                                <span class="recent-path-text">D:\媒体文件\视频</span>
+                                <button class="recent-path-remove">×</button>
+                            </div>
+                        </div>
+                        <button id="clear-recent-paths" class="btn btn-secondary btn-small">清除历史</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 扫描设置 -->
+            <section id="scanning-tab" class="tab-content">
+                <h2>扫描设置</h2>
+                
+                <div class="setting-group">
+                    <h3>支持的文件格式</h3>
+                    <div class="setting-item">
+                        <label>视频文件扩展名</label>
+                        <div class="extension-list">
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-mp4" checked>
+                                <span class="checkmark"></span>
+                                .mp4
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-mkv" checked>
+                                <span class="checkmark"></span>
+                                .mkv
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-avi" checked>
+                                <span class="checkmark"></span>
+                                .avi
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-mov" checked>
+                                <span class="checkmark"></span>
+                                .mov
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-wmv">
+                                <span class="checkmark"></span>
+                                .wmv
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-flv">
+                                <span class="checkmark"></span>
+                                .flv
+                            </label>
+                        </div>
+                        <div class="custom-extension">
+                            <input type="text" id="custom-extensions" placeholder="自定义扩展名 (用逗号分隔)">
+                            <button id="add-custom-ext" class="btn btn-secondary btn-small">添加</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>扫描选项</h3>
+                    <div class="setting-item">
+                        <label for="scan-depth">扫描深度</label>
+                        <div class="slider-container">
+                            <input type="range" id="scan-depth" min="1" max="10" value="5">
+                            <span class="slider-value" id="scan-depth-value">5</span>
+                            <span class="slider-label">层</span>
+                        </div>
+                        <small>限制子文件夹扫描的最大深度</small>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="enable-ffprobe" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">启用 FFprobe 检测</span>
+                                <span class="label-description">使用 FFprobe 获取准确的编码格式信息</span>
+                            </div>
+                        </label>
+                    </div>
+                    
+                    <div class="diagnostic-section">
+                        <button id="test-ffprobe" class="btn btn-primary">测试 FFprobe 可用性</button>
+                        <div id="ffprobe-status" class="status-indicator">
+                            <span class="status-indicator success">FFprobe 可用</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 外观主题 -->
+            <section id="appearance-tab" class="tab-content">
+                <h2>外观主题</h2>
+                
+                <div class="setting-group">
+                    <h3>主题选择</h3>
+                    <div class="theme-selector">
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="light" checked>
+                            <div class="theme-preview light-theme">
+                                <div class="theme-header"></div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar"></div>
+                                    <div class="theme-main"></div>
+                                </div>
+                            </div>
+                            <span class="theme-name">浅色主题</span>
+                        </label>
+                        
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="dark">
+                            <div class="theme-preview dark-theme">
+                                <div class="theme-header"></div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar"></div>
+                                    <div class="theme-main"></div>
+                                </div>
+                            </div>
+                            <span class="theme-name">深色主题</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>界面设置</h3>
+                    <div class="setting-item">
+                        <label for="ui-scale">界面缩放</label>
+                        <div class="slider-container">
+                            <input type="range" id="ui-scale" min="80" max="150" value="100" step="10">
+                            <span class="slider-value" id="ui-scale-value">100</span>
+                            <span class="slider-label">%</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 其他标签页内容省略以节省空间 -->
+            <section id="performance-tab" class="tab-content">
+                <h2>性能优化</h2>
+                <div class="test-data">
+                    ✨ 性能设置页面内容...
+                </div>
+            </section>
+
+            <section id="advanced-tab" class="tab-content">
+                <h2>高级设置</h2>
+                <div class="test-data">
+                    🔧 高级设置页面内容...
+                </div>
+            </section>
+
+            <section id="about-tab" class="tab-content">
+                <h2>关于应用</h2>
+                <div class="test-data">
+                    ℹ️ 关于页面内容...
+                </div>
+            </section>
+        </main>
+
+        <!-- 设置页面底部 -->
+        <footer class="settings-footer">
+            <div class="footer-actions">
+                <button id="save-settings" class="btn btn-primary">
+                    <span class="icon">💾</span>
+                    保存设置
+                </button>
+                <button id="cancel-settings" class="btn btn-secondary">取消</button>
+            </div>
+            <div class="footer-status">
+                <span id="save-status" class="status-text">设置已加载</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        // 简单的标签切换功能
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // 移除所有活动状态
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // 激活选中的标签
+                tab.classList.add('active');
+                const tabId = tab.dataset.tab;
+                document.getElementById(tabId + '-tab').classList.add('active');
+            });
+        });
+
+        // 滑块值更新
+        document.querySelectorAll('input[type="range"]').forEach(slider => {
+            const valueDisplay = document.getElementById(slider.id + '-value');
+            if (valueDisplay) {
+                slider.addEventListener('input', (e) => {
+                    valueDisplay.textContent = e.target.value;
+                });
+            }
+        });
+
+        // 模拟按钮点击
+        document.querySelectorAll('.btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                console.log('按钮点击:', btn.textContent.trim());
+            });
+        });
+    </script>
+</body>
+</html>

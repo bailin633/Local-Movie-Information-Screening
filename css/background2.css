@@ -7,7 +7,7 @@
 /* 主内容区域 */
 .main-content {
     display: flex;
-    height: calc(100vh - 140px);
+    height: calc(100vh - 200px); /* 增加高度以适应分辨率选项 */
     position: relative;
     padding: 20px;
     box-sizing: border-box;
@@ -16,40 +16,89 @@
     border-radius: 20px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     z-index: 1; /* 确保主内容区域的 z-index 较低 */
+    margin-bottom: 20px; /* 为分辨率选项留出空间 */
+    /* 确保内容不会溢出 */
+    overflow: hidden;
+    width: 100%;
+    max-width: 100%;
 }
 
 /* 视频概览和视频详细信息共享样式 */
 .video-overview, .video-info {
-    flex: 1;
+    flex: 1 1 0; /* 允许flex项目收缩和增长 */
     background: rgba(255, 255, 255, 0.3);
     border-radius: 15px;
     padding: 25px;
     margin: 0 10px;
     overflow: auto;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    /* 添加GPU加速优化 */
+    will-change: flex-basis;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    /* 确保不会溢出 */
+    min-width: 0;
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* 确保在容器内 */
+    box-sizing: border-box;
 }
 
 .video-overview:hover, .video-info:hover {
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
+    transform: translateY(-2px) translateZ(0);
 }
 
 /* 分隔条样式 */
 .resizer {
     width: 10px;
-    background-color: #ddd;
+    background: linear-gradient(to right, #e0e0e0, #d0d0d0, #e0e0e0);
     cursor: col-resize;
-    transition: background-color 0.3s;
-    flex: 0 0 auto; /* 防止 resizer 被压缩 */
+    transition: all 0.2s ease;
+    flex: 0 0 10px; /* 固定宽度，防止被压缩 */
+    border-radius: 2px;
+    position: relative;
+    /* 添加GPU加速 */
+    will-change: background-color, transform;
+    transform: translateZ(0);
+    /* 确保不会溢出 */
+    margin: 0 5px;
+    box-sizing: border-box;
 }
 
-.resizer:hover, .resizer.active {
-    background-color: #bbb;
+.resizer:hover {
+    background: linear-gradient(to right, #c0c0c0, #b0b0b0, #c0c0c0);
+    transform: scaleX(1.2) translateZ(0);
 }
-/* 添加这个样式来防止文本选择 */
+
+.resizer.active {
+    background: linear-gradient(to right, #4a90e2, #357abd, #4a90e2);
+    transform: scaleX(1.3) translateZ(0);
+    box-shadow: 0 0 10px rgba(74, 144, 226, 0.3);
+}
+/* 拖动时的优化样式 */
 .resizing {
     user-select: none;
+}
+
+/* 拖动时禁用文本选择和优化性能 */
+body.resizing {
+    user-select: none;
+    cursor: col-resize;
+    /* 拖动时禁用所有过渡效果以提高性能 */
+}
+
+body.resizing .video-overview,
+body.resizing .video-info {
+    transition: none !important;
+    pointer-events: none;
+    /* 拖动时暂时禁用hover效果 */
+}
+
+body.resizing .resizer {
+    transition: none !important;
 }
 
 /* 确保视频概览和视频详细信息区域不会干扰拖动 */
@@ -57,10 +106,118 @@
     pointer-events: auto;
 }
 
-/* 拖动时禁用文本选择 */
-body.resizing {
-    user-select: none;
-    cursor: col-resize;
+/* 添加拖拽时的视觉反馈 */
+.resizer::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 4px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.6);
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.resizer:hover::before,
+.resizer.active::before {
+    opacity: 1;
+}
+
+/* 分辨率选项样式 */
+.resolution-options {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.resolution-options h3 {
+    color: #2c3e50;
+    font-size: 1.2em;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #4a90e2;
+    padding-bottom: 8px;
+}
+
+.resolution-options label {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.resolution-options label:hover {
+    color: #4a90e2;
+}
+
+.resolution-options input[type="radio"] {
+    margin-right: 8px;
+    accent-color: #4a90e2;
+}
+
+/* 视频详细信息样式优化 */
+#video-details {
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(74, 144, 226, 0.2);
+    border-radius: 10px;
+    padding: 15px;
+    margin-top: 15px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    /* 确保文本不会溢出 */
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+#video-details p {
+    margin: 8px 0;
+    line-height: 1.5;
+    color: #2c3e50;
+}
+
+#video-details strong {
+    color: #4a90e2;
+    font-weight: 600;
+}
+
+/* 视频操作按钮样式 */
+.video-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.video-action-button {
+    background: linear-gradient(135deg, #4a90e2, #357abd);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
+}
+
+.video-action-button:hover {
+    background: linear-gradient(135deg, #357abd, #2c5aa0);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.4);
+}
+
+.video-action-button:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(74, 144, 226, 0.3);
 }
 
 /* 标题样式 */
