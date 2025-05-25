@@ -383,7 +383,7 @@ copies or substantial portions of the Software.
 
 | 联系方式 | 信息 |
 |:--------:|:----:|
-| 📧 **邮箱** | [your.email@example.com](mailto:2412433138@qq.com) |
+| 📧 **邮箱** | [2412433138@qq.com](mailto:2412433138@qq.com) |
 | 🐛 **问题反馈** | [GitHub Issues](https://github.com/bailin633/Local-Movie-Information-Screening/issues) |
 | 💬 **讨论交流** | [GitHub Discussions](https://github.com/bailin633/Local-Movie-Information-Screening/discussions) |
 
@@ -741,7 +741,7 @@ copies or substantial portions of the Software.
 
 | Contact Method | Information |
 |:--------------:|:-----------:|
-| 📧 **Email** | [your.email@example.com](mailto:2412433138@qq.com) |
+| 📧 **Email** | [2412433138@qq.com](mailto:2412433138@qq.com) |
 | 🐛 **Bug Reports** | [GitHub Issues](https://github.com/bailin633/Local-Movie-Information-Screening/issues) |
 | 💬 **Discussions** | [GitHub Discussions](https://github.com/bailin633/Local-Movie-Information-Screening/discussions) |
 
