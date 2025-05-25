@@ -383,10 +383,10 @@ copies or substantial portions of the Software.
 
 | 联系方式 | 信息 |
 |:--------:|:----:|
-| 📧 **邮箱** | [your.email@example.com](mailto:your.email@example.com) |
-| 🐛 **问题反馈** | [GitHub Issues](https://github.com/yourusername/Local-Movie-Information-Screening/issues) |
-| 💬 **讨论交流** | [GitHub Discussions](https://github.com/yourusername/Local-Movie-Information-Screening/discussions) |
-| 📱 **社交媒体** | [@YourTwitter](https://twitter.com/YourTwitter) |
+| 📧 **邮箱** | [your.email@example.com](mailto:2412433138@qq.com) |
+| 🐛 **问题反馈** | [GitHub Issues](https://github.com/bailin633/Local-Movie-Information-Screening/issues) |
+| 💬 **讨论交流** | [GitHub Discussions](https://github.com/bailin633/Local-Movie-Information-Screening/discussions) |
+
 
 </div>
 
@@ -741,10 +741,9 @@ copies or substantial portions of the Software.
 
 | Contact Method | Information |
 |:--------------:|:-----------:|
-| 📧 **Email** | [your.email@example.com](mailto:your.email@example.com) |
-| 🐛 **Bug Reports** | [GitHub Issues](https://github.com/yourusername/Local-Movie-Information-Screening/issues) |
-| 💬 **Discussions** | [GitHub Discussions](https://github.com/yourusername/Local-Movie-Information-Screening/discussions) |
-| 📱 **Social Media** | [@YourTwitter](https://twitter.com/YourTwitter) |
+| 📧 **Email** | [your.email@example.com](mailto:2412433138@qq.com) |
+| 🐛 **Bug Reports** | [GitHub Issues](https://github.com/bailin633/Local-Movie-Information-Screening/issues) |
+| 💬 **Discussions** | [GitHub Discussions](https://github.com/bailin633/Local-Movie-Information-Screening/discussions) |
 
 </div>
 
