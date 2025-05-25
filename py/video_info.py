@@ -23,7 +23,7 @@ def get_codec_from_extension(file_path):
     }
     return extension_codec_map.get(ext, 'Unknown')
 
-def get_video_info(file_path):
+def get_video_info(file_path, ffmpeg_path=''):
     # 打开视频文件
     video = cv2.VideoCapture(file_path)
     # 获取视频的帧率
@@ -44,10 +44,18 @@ def get_video_info(file_path):
     # 将文件大小转换为MB
     file_size_mb = file_size / (1024 * 1024)
 
+    # 确定ffprobe命令路径
+    ffprobe_cmd = 'ffprobe'
+    if ffmpeg_path:
+        ffprobe_cmd = os.path.join(ffmpeg_path, 'ffprobe.exe' if os.name == 'nt' else 'ffprobe')
+        if not os.path.exists(ffprobe_cmd):
+            print(f"  指定的ffprobe路径不存在: {ffprobe_cmd}")
+            ffprobe_cmd = 'ffprobe'  # 回退到系统PATH
+
     # 使用 ffprobe 获取码率和编码格式信息
     try:
         # 运行ffprobe命令获取视频比特率
-        bitrate_result = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+        bitrate_result = subprocess.run([ffprobe_cmd, '-v', 'error', '-select_streams', 'v:0',
                                          '-count_packets', '-show_entries', 'stream=bit_rate',
                                          '-of', 'csv=p=0', file_path],
                                         capture_output=True, text=True)
@@ -65,7 +73,7 @@ def get_video_info(file_path):
 
     try:
         # 尝试使用ffprobe获取详细的编码格式信息
-        codec_result = subprocess.run(['ffprobe', '-v', 'quiet', '-select_streams', 'v:0',
+        codec_result = subprocess.run([ffprobe_cmd, '-v', 'quiet', '-select_streams', 'v:0',
                                        '-show_entries', 'stream=codec_name',
                                        '-of', 'csv=p=0', file_path],
                                       capture_output=True, text=True, timeout=10)
@@ -96,7 +104,7 @@ def get_video_info(file_path):
             print(f"  ffprobe无法检测编码格式，使用扩展名推测: {codec_name}")
 
     except FileNotFoundError:
-        print(f"  ffprobe未安装，使用扩展名推测编码格式: {codec_name}")
+        print(f"  未找到FFmpeg，使用扩展名推测编码格式: {codec_name}")
     except subprocess.TimeoutExpired:
         print(f"  ffprobe超时，使用扩展名推测编码格式: {codec_name}")
     except Exception as e:
@@ -124,25 +132,83 @@ def get_title_from_nfo(nfo_path):
             return title_match.group(1)
     return None
 
-def scan_directory(dir_path):
-    # 定义视频文件扩展名
-    video_extensions = ['.mp4', '.avi', '.mkv', '.mov']
+def scan_directory(dir_path, max_depth=5, video_extensions=None, include_hidden=False, ffmpeg_path=''):
+    """
+    扫描目录中的视频文件，支持深度限制
+
+    Args:
+        dir_path: 要扫描的目录路径
+        max_depth: 最大扫描深度（默认5层）
+        video_extensions: 支持的视频文件扩展名列表
+        include_hidden: 是否包含隐藏文件
+        ffmpeg_path: FFmpeg安装路径
+    """
+    if video_extensions is None:
+        video_extensions = ['.mp4', '.avi', '.mkv', '.mov']
+
     video_files = []
 
-    # 计算总文件数
-    total_files = sum(1 for root, dirs, files in os.walk(dir_path)
-                      for file in files if any(file.lower().endswith(ext) for ext in video_extensions))
+    def get_depth(path, base_path):
+        """计算相对于基础路径的深度"""
+        rel_path = os.path.relpath(path, base_path)
+        if rel_path == '.':
+            return 0
+        return len(rel_path.split(os.sep))
+
+    # 首先计算总文件数（考虑深度限制）
+    total_files = 0
+    for root, dirs, files in os.walk(dir_path):
+        current_depth = get_depth(root, dir_path)
+
+        # 检查深度限制
+        if current_depth >= max_depth:
+            dirs.clear()  # 不再深入子目录
+            continue
+
+        # 过滤隐藏目录
+        if not include_hidden:
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
+        for file in files:
+            # 跳过隐藏文件
+            if not include_hidden and file.startswith('.'):
+                continue
+
+            if any(file.lower().endswith(ext) for ext in video_extensions):
+                total_files += 1
+
+    print(f"扫描设置: 最大深度={max_depth}, 扩展名={video_extensions}, 包含隐藏文件={include_hidden}")
+    print(f"预计处理文件数: {total_files}")
 
     processed_files = 0
-    # 遍历目录
+    # 遍历目录（应用深度限制）
     for root, dirs, files in os.walk(dir_path):
+        current_depth = get_depth(root, dir_path)
+
+        # 检查深度限制
+        if current_depth >= max_depth:
+            print(f"达到最大扫描深度 {max_depth}，跳过目录: {root}")
+            dirs.clear()  # 不再深入子目录
+            continue
+
+        # 过滤隐藏目录
+        if not include_hidden:
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
+        print(f"扫描目录 (深度 {current_depth}): {root}")
+
         for file in files:
+            # 跳过隐藏文件
+            if not include_hidden and file.startswith('.'):
+                continue
+
             # 检查文件是否为视频文件
             if any(file.lower().endswith(ext) for ext in video_extensions):
                 full_path = os.path.join(root, file)
                 try:
                     # 获取视频信息
-                    video_info = get_video_info(full_path)
+                    video_info = get_video_info(full_path, ffmpeg_path)
+                    video_info['depth'] = current_depth  # 添加深度信息
 
                     # 检查 movie.nfo 文件
                     nfo_path = os.path.join(root, 'movie.nfo')
@@ -155,31 +221,67 @@ def scan_directory(dir_path):
 
                     # 更新进度
                     processed_files += 1
-                    progress = processed_files / total_files
-                    print(f"进度：{processed_files}/{total_files}", flush=True)
+                    if total_files > 0:
+                        progress = processed_files / total_files
+                        print(f"进度：{processed_files}/{total_files}", flush=True)
 
                     # 打印处理的文件信息
                     print(f"处理文件: {video_info['name']}")
-                    print(f"  路径: {video_info['path']}")  # 添加这行
+                    print(f"  路径: {video_info['path']}")
+                    print(f"  深度: {current_depth}")
                     print(f"  分辨率: {video_info['resolution']}")
                     print(f"  帧率: {video_info['frameRate']}")
                     print(f"  时长: {video_info['duration']} 秒")
                     print(f"  文件大小: {video_info['fileSize']} MB")
                     print(f"  码率: {video_info['bitrate'] / 1000000:.2f} Mbps" if video_info['bitrate'] else "  码率: N/A")
-                    print(f"  编码格式: {video_info['codec']}")  # 添加编码格式
+                    print(f"  编码格式: {video_info['codec']}")
                     print("-" * 40)
                 except Exception as e:
                     # 打印错误信息
                     print(f"处理文件 {full_path} 时出错: {str(e)}", file=sys.stderr)
 
+    print(f"扫描完成，共找到 {len(video_files)} 个视频文件")
     return video_files
 
 if __name__ == "__main__":
     # 检查是否提供了目录参数
     if len(sys.argv) > 1:
         directory = sys.argv[1]
+
+        # 解析可选参数
+        max_depth = 5  # 默认深度
+        video_extensions = ['.mp4', '.avi', '.mkv', '.mov']  # 默认扩展名
+        include_hidden = False  # 默认不包含隐藏文件
+        ffmpeg_path = ''  # 默认FFmpeg路径
+
+        try:
+            # 解析扫描深度参数
+            if len(sys.argv) > 2:
+                max_depth = int(sys.argv[2])
+                print(f"使用扫描深度: {max_depth}")
+
+            # 解析支持的扩展名参数
+            if len(sys.argv) > 3:
+                extensions_json = sys.argv[3]
+                video_extensions = json.loads(extensions_json)
+                print(f"使用扩展名: {video_extensions}")
+
+            # 解析是否包含隐藏文件参数
+            if len(sys.argv) > 4:
+                include_hidden = sys.argv[4].lower() == 'true'
+                print(f"包含隐藏文件: {include_hidden}")
+
+            # 解析FFmpeg路径参数
+            if len(sys.argv) > 5:
+                ffmpeg_path = sys.argv[5]
+                print(f"使用FFmpeg路径: {ffmpeg_path}")
+
+        except (ValueError, json.JSONDecodeError) as e:
+            print(f"参数解析错误: {e}", file=sys.stderr)
+            print("使用默认设置继续扫描...")
+
         # 扫描目录并获取结果
-        result = scan_directory(directory)
+        result = scan_directory(directory, max_depth, video_extensions, include_hidden, ffmpeg_path)
         print("\n最终结果:")
         # 打印JSON格式的结果
         print(json.dumps(result, ensure_ascii=False, indent=2))

@@ -14,8 +14,18 @@ class FFmpegManager {
         this.ffprobePath = null;
         this.version = null;
         this.isAvailable = false;
-        this.preferredPath = 'F:\\Core_1\\ffmpeg\\bin\\';
+        // 使用相对于程序根目录的路径
+        this.preferredPath = this.getPreferredPath();
         this.timeout = 15000; // 默认超时时间15秒
+    }
+
+    /**
+     * 获取首选FFmpeg路径（相对于程序根目录）
+     */
+    getPreferredPath() {
+        // 获取程序根目录
+        const appRoot = process.cwd();
+        return path.join(appRoot, 'ffmpeg', 'bin');
     }
 
     /**
@@ -32,11 +42,12 @@ class FFmpegManager {
      */
     async detectFFmpegPath() {
         console.log('检测FFmpeg路径...');
-        
+
         // 1. 优先检查指定路径
         if (await this.checkPath(this.preferredPath)) {
-            this.ffmpegPath = path.join(this.preferredPath, 'ffmpeg.exe');
-            this.ffprobePath = path.join(this.preferredPath, 'ffprobe.exe');
+            const isWindows = os.platform() === 'win32';
+            this.ffmpegPath = path.join(this.preferredPath, isWindows ? 'ffmpeg.exe' : 'ffmpeg');
+            this.ffprobePath = path.join(this.preferredPath, isWindows ? 'ffprobe.exe' : 'ffprobe');
             console.log(`使用优先路径: ${this.preferredPath}`);
             return true;
         }
@@ -59,8 +70,9 @@ class FFmpegManager {
 
         for (const commonPath of commonPaths) {
             if (await this.checkPath(commonPath)) {
-                this.ffmpegPath = path.join(commonPath, 'ffmpeg.exe');
-                this.ffprobePath = path.join(commonPath, 'ffprobe.exe');
+                const isWindows = os.platform() === 'win32';
+                this.ffmpegPath = path.join(commonPath, isWindows ? 'ffmpeg.exe' : 'ffmpeg');
+                this.ffprobePath = path.join(commonPath, isWindows ? 'ffprobe.exe' : 'ffprobe');
                 console.log(`使用常见路径: ${commonPath}`);
                 return true;
             }
@@ -76,12 +88,14 @@ class FFmpegManager {
      */
     async checkPath(dirPath) {
         try {
-            const ffmpegExe = path.join(dirPath, 'ffmpeg.exe');
-            const ffprobeExe = path.join(dirPath, 'ffprobe.exe');
-            
+            // 根据操作系统确定可执行文件名
+            const isWindows = os.platform() === 'win32';
+            const ffmpegExe = path.join(dirPath, isWindows ? 'ffmpeg.exe' : 'ffmpeg');
+            const ffprobeExe = path.join(dirPath, isWindows ? 'ffprobe.exe' : 'ffprobe');
+
             await fs.access(ffmpegExe);
             await fs.access(ffprobeExe);
-            
+
             // 验证可执行性
             const version = await this.getVersionFromPath(ffmpegExe);
             if (version) {
@@ -157,8 +171,9 @@ class FFmpegManager {
      */
     async setCustomPath(customPath) {
         if (await this.checkPath(customPath)) {
-            this.ffmpegPath = path.join(customPath, 'ffmpeg.exe');
-            this.ffprobePath = path.join(customPath, 'ffprobe.exe');
+            const isWindows = os.platform() === 'win32';
+            this.ffmpegPath = path.join(customPath, isWindows ? 'ffmpeg.exe' : 'ffmpeg');
+            this.ffprobePath = path.join(customPath, isWindows ? 'ffprobe.exe' : 'ffprobe');
             console.log(`设置自定义路径: ${customPath}`);
             return true;
         }
@@ -204,7 +219,7 @@ class FFmpegManager {
 
             process.on('close', (code) => {
                 clearTimeout(timeout);
-                
+
                 if (code === 0 && output) {
                     try {
                         const metadata = JSON.parse(output);
@@ -267,7 +282,7 @@ class FFmpegManager {
                     streamInfo.aspectRatio = stream.display_aspect_ratio;
                     streamInfo.frameRate = this.parseFrameRate(stream.r_frame_rate);
                     streamInfo.pixelFormat = stream.pix_fmt;
-                    
+
                     // 设置主要视频流信息
                     if (!result.video.codecName) {
                         result.video = { ...streamInfo };
@@ -276,7 +291,7 @@ class FFmpegManager {
                     streamInfo.sampleRate = parseInt(stream.sample_rate) || 0;
                     streamInfo.channels = stream.channels || 0;
                     streamInfo.channelLayout = stream.channel_layout;
-                    
+
                     // 设置主要音频流信息
                     if (!result.audio.codecName) {
                         result.audio = { ...streamInfo };
@@ -295,7 +310,7 @@ class FFmpegManager {
      */
     parseFrameRate(frameRateStr) {
         if (!frameRateStr || frameRateStr === '0/0') return 0;
-        
+
         const parts = frameRateStr.split('/');
         if (parts.length === 2) {
             const numerator = parseFloat(parts[0]);

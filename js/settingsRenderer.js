@@ -405,6 +405,13 @@ async function loadSettings() {
     try {
         const savedSettings = await ipcRenderer.invoke('get-settings');
         currentSettings = { ...DEFAULT_SETTINGS, ...savedSettings };
+
+        // 确保supportedExtensions不为空，如果为空则使用默认值
+        if (!currentSettings.supportedExtensions || currentSettings.supportedExtensions.length === 0) {
+            currentSettings.supportedExtensions = [...DEFAULT_SETTINGS.supportedExtensions];
+            console.log('扩展名为空，使用默认值:', currentSettings.supportedExtensions);
+        }
+
         applySettingsToUI();
         hasUnsavedChanges = false;
         elements.saveStatus.textContent = '设置已加载';
@@ -455,16 +462,11 @@ function applySettingsToUI() {
 }
 
 /**
- * 更新扩展名复选框
+ * 更新扩展名显示（使用新的格式管理系统）
  */
 function updateExtensionCheckboxes() {
-    const extensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
-    extensions.forEach(ext => {
-        const checkbox = document.getElementById(`ext-${ext.substring(1)}`);
-        if (checkbox) {
-            checkbox.checked = currentSettings.supportedExtensions.includes(ext);
-        }
-    });
+    // 使用新的格式管理系统更新显示
+    updateFormatDisplay();
 }
 
 /**
@@ -652,16 +654,9 @@ function collectSettingsFromUI() {
         currentSettings.theme = themeRadio.value;
     }
 
-    // 支持的扩展名
-    const supportedExtensions = [];
-    const extensionCheckboxes = document.querySelectorAll('.extension-item input[type="checkbox"]');
-    extensionCheckboxes.forEach(checkbox => {
-        if (checkbox.checked) {
-            const ext = '.' + checkbox.id.replace('ext-', '');
-            supportedExtensions.push(ext);
-        }
-    });
-    currentSettings.supportedExtensions = supportedExtensions;
+    // 支持的扩展名 - 不需要从UI收集，因为格式管理系统直接更新currentSettings.supportedExtensions
+    // 格式管理系统通过applyFormatPreset、addNewFormat、removeFormat等函数直接操作currentSettings.supportedExtensions
+    // 所以这里不需要额外的收集逻辑
 }
 
 /**
@@ -1844,9 +1839,12 @@ function showValidationMessage(message, type = 'info') {
  */
 async function browseFFmpegPath() {
     try {
+        // 获取程序根目录下的ffmpeg路径作为默认路径
+        const defaultPath = await ipcRenderer.invoke('get-default-ffmpeg-path');
+
         const result = await ipcRenderer.invoke('browse-directory', {
             title: '选择FFmpeg安装目录',
-            defaultPath: 'F:\\Core_1\\ffmpeg\\bin\\'
+            defaultPath: defaultPath
         });
 
         if (!result.canceled && result.filePaths.length > 0) {

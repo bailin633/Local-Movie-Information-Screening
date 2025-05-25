@@ -304,6 +304,16 @@ app.whenReady().then(() => {
         }
     });
 
+    ipcMain.handle('get-default-ffmpeg-path', async () => {
+        try {
+            // 返回程序根目录下的ffmpeg路径
+            return path.join(__dirname, 'ffmpeg', 'bin');
+        } catch (error) {
+            console.error('获取默认FFmpeg路径失败:', error);
+            return '';
+        }
+    });
+
     ipcMain.handle('validate-ffmpeg-path', async (event, customPath) => {
         try {
             const isValid = await ffmpegManager.setCustomPath(customPath);
@@ -398,7 +408,35 @@ ipcMain.on('scan-directory', (event, dirPath) => {
         return;
     }
 
-    const pythonProcess = spawn('python', [pythonScriptPath, dirPath], {
+    // 获取当前设置，包括扫描深度
+    const settings = loadSettings();
+    const scanDepth = settings.scanDepth || 5;
+    const supportedExtensions = settings.supportedExtensions || ['.mp4', '.mkv', '.avi', '.mov'];
+    const includeHidden = settings.includeHidden || false;
+
+    // 确定FFmpeg路径
+    let ffmpegPath = '';
+    const preferredPath = path.join(__dirname, 'ffmpeg', 'bin');
+    const isWindows = os.platform() === 'win32';
+    const ffprobeExe = path.join(preferredPath, isWindows ? 'ffprobe.exe' : 'ffprobe');
+
+    if (fs.existsSync(ffprobeExe)) {
+        ffmpegPath = preferredPath;
+    } else if (settings.ffmpegPath && fs.existsSync(settings.ffmpegPath)) {
+        ffmpegPath = settings.ffmpegPath;
+    }
+
+    console.log('扫描设置:', { scanDepth, supportedExtensions, includeHidden, ffmpegPath });
+
+    // 将扫描参数传递给Python脚本
+    const pythonProcess = spawn('python', [
+        pythonScriptPath,
+        dirPath,
+        scanDepth.toString(),
+        JSON.stringify(supportedExtensions),
+        includeHidden.toString(),
+        ffmpegPath
+    ], {
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
     });
 
