@@ -8,6 +8,21 @@ import subprocess
 # 设置标准输出的编码为UTF-8
 sys.stdout.reconfigure(encoding='utf-8')
 
+def get_codec_from_extension(file_path):
+    """根据文件扩展名推测可能的编码格式"""
+    ext = os.path.splitext(file_path)[1].lower()
+    extension_codec_map = {
+        '.mp4': 'H.264',
+        '.mkv': 'H.264/H.265',
+        '.avi': 'MPEG-4/Xvid',
+        '.mov': 'H.264',
+        '.wmv': 'WMV',
+        '.flv': 'H.264',
+        '.webm': 'VP8/VP9',
+        '.m4v': 'H.264'
+    }
+    return extension_codec_map.get(ext, 'Unknown')
+
 def get_video_info(file_path):
     # 打开视频文件
     video = cv2.VideoCapture(file_path)
@@ -29,21 +44,63 @@ def get_video_info(file_path):
     # 将文件大小转换为MB
     file_size_mb = file_size / (1024 * 1024)
 
-    # 使用 ffprobe 获取码率信息
+    # 使用 ffprobe 获取码率和编码格式信息
     try:
         # 运行ffprobe命令获取视频比特率
-        result = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
-                                 '-count_packets', '-show_entries', 'stream=bit_rate',
-                                 '-of', 'csv=p=0', file_path],
-                                capture_output=True, text=True)
+        bitrate_result = subprocess.run(['ffprobe', '-v', 'error', '-select_streams', 'v:0',
+                                         '-count_packets', '-show_entries', 'stream=bit_rate',
+                                         '-of', 'csv=p=0', file_path],
+                                        capture_output=True, text=True)
         # 解析ffprobe的输出结果
-        bitrate = int(result.stdout.strip())
+        bitrate = int(bitrate_result.stdout.strip())
         if bitrate == 0:  # 如果 ffprobe 返回 0，我们计算一个估计值
             bitrate = (file_size * 8) / duration if duration > 0 else None
     except Exception as e:
         print(f"获取码率信息时出错: {str(e)}", file=sys.stderr)
         # 计算估计的码率
         bitrate = (file_size * 8) / duration if duration > 0 else None
+
+    # 获取编码格式信息
+    codec_name = get_codec_from_extension(file_path)  # 默认使用扩展名推测
+
+    try:
+        # 尝试使用ffprobe获取详细的编码格式信息
+        codec_result = subprocess.run(['ffprobe', '-v', 'quiet', '-select_streams', 'v:0',
+                                       '-show_entries', 'stream=codec_name',
+                                       '-of', 'csv=p=0', file_path],
+                                      capture_output=True, text=True, timeout=10)
+
+        if codec_result.returncode == 0 and codec_result.stdout.strip():
+            codec_output = codec_result.stdout.strip()
+            if codec_output:
+                raw_codec = codec_output.strip()
+                # 将常见的编码名称转换为更友好的格式
+                codec_mapping = {
+                    'h264': 'H.264',
+                    'hevc': 'H.265/HEVC',
+                    'h265': 'H.265/HEVC',
+                    'vp9': 'VP9',
+                    'vp8': 'VP8',
+                    'av1': 'AV1',
+                    'mpeg4': 'MPEG-4',
+                    'mpeg2video': 'MPEG-2',
+                    'xvid': 'Xvid',
+                    'wmv3': 'WMV',
+                    'prores': 'ProRes',
+                    'libx264': 'H.264',
+                    'libx265': 'H.265/HEVC'
+                }
+                codec_name = codec_mapping.get(raw_codec.lower(), raw_codec)
+                print(f"  ffprobe检测到编码格式: {raw_codec} -> {codec_name}")
+        else:
+            print(f"  ffprobe无法检测编码格式，使用扩展名推测: {codec_name}")
+
+    except FileNotFoundError:
+        print(f"  ffprobe未安装，使用扩展名推测编码格式: {codec_name}")
+    except subprocess.TimeoutExpired:
+        print(f"  ffprobe超时，使用扩展名推测编码格式: {codec_name}")
+    except Exception as e:
+        print(f"  ffprobe出错: {str(e)}，使用扩展名推测编码格式: {codec_name}")
 
     # 返回视频信息字典
     return {
@@ -53,7 +110,8 @@ def get_video_info(file_path):
         "frameRate": fps,
         "duration": duration,
         "fileSize": file_size_mb,
-        "bitrate": bitrate
+        "bitrate": bitrate,
+        "codec": codec_name  # 添加编码格式
     }
 
 def get_title_from_nfo(nfo_path):
@@ -108,6 +166,7 @@ def scan_directory(dir_path):
                     print(f"  时长: {video_info['duration']} 秒")
                     print(f"  文件大小: {video_info['fileSize']} MB")
                     print(f"  码率: {video_info['bitrate'] / 1000000:.2f} Mbps" if video_info['bitrate'] else "  码率: N/A")
+                    print(f"  编码格式: {video_info['codec']}")  # 添加编码格式
                     print("-" * 40)
                 except Exception as e:
                     # 打印错误信息

@@ -2,17 +2,643 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>设置</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>应用设置</title>
     <link rel="stylesheet" href="css/settingWindow.css">
+    <link rel="stylesheet" href="css/background2.css">
 </head>
 <body>
-    <h1>设置</h1>
-    <div class="container">
-        <div class="option">
-            <input type="checkbox" id="organize-by-metadata">
-            <label for="organize-by-metadata">以元数据信息整理</label>
-        </div>
-        <button id="save-settings">保存设置</button>
+    <div id="background"></div>
+    <div class="settings-container">
+        <!-- 设置页面头部 -->
+        <header class="settings-header">
+            <h1>应用设置</h1>
+            <div class="header-actions">
+                <button id="reset-settings" class="btn btn-secondary" title="重置为默认设置">
+                    <span class="icon">🔄</span>
+                    重置默认
+                </button>
+                <button id="close-settings" class="btn btn-close" title="关闭设置">
+                    <span class="icon">✕</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 设置导航标签 -->
+        <nav class="settings-nav">
+            <button class="nav-tab active" data-tab="general">
+                <span class="icon">⚙️</span>
+                常规设置
+            </button>
+            <button class="nav-tab" data-tab="scanning">
+                <span class="icon">🔍</span>
+                扫描设置
+            </button>
+            <button class="nav-tab" data-tab="appearance">
+                <span class="icon">🎨</span>
+                外观主题
+            </button>
+            <button class="nav-tab" data-tab="performance">
+                <span class="icon">⚡</span>
+                性能优化
+            </button>
+            <button class="nav-tab" data-tab="advanced">
+                <span class="icon">🔧</span>
+                高级设置
+            </button>
+            <button class="nav-tab" data-tab="about">
+                <span class="icon">ℹ️</span>
+                关于应用
+            </button>
+        </nav>
+
+        <!-- 设置内容区域 -->
+        <main class="settings-content">
+            <!-- 常规设置 -->
+            <section id="general-tab" class="tab-content active">
+                <h2>常规设置</h2>
+
+                <div class="setting-group">
+                    <h3>文件管理</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="organize-by-metadata">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">按元数据信息整理</span>
+                                <span class="label-description">根据视频的元数据信息自动整理文件</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="auto-refresh">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">自动刷新列表</span>
+                                <span class="label-description">文件夹内容变化时自动更新视频列表</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>默认路径</h3>
+                    <div class="setting-item">
+                        <label for="default-scan-path">默认扫描目录</label>
+                        <div class="input-group">
+                            <input type="text" id="default-scan-path" placeholder="选择默认扫描目录">
+                            <button id="browse-default-path" class="btn btn-secondary">浏览</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>最近使用的目录</label>
+                        <div class="recent-paths" id="recent-paths">
+                            <!-- 动态生成最近路径 -->
+                        </div>
+                        <button id="clear-recent-paths" class="btn btn-secondary btn-small">清除历史</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 扫描设置 -->
+            <section id="scanning-tab" class="tab-content">
+                <h2>扫描设置</h2>
+
+                <div class="setting-group">
+                    <h3>支持的文件格式</h3>
+                    <div class="setting-item">
+                        <label>视频文件扩展名</label>
+                        <div class="extension-list">
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-mp4" checked>
+                                <span class="checkmark"></span>
+                                .mp4
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-mkv" checked>
+                                <span class="checkmark"></span>
+                                .mkv
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-avi" checked>
+                                <span class="checkmark"></span>
+                                .avi
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-mov" checked>
+                                <span class="checkmark"></span>
+                                .mov
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-wmv">
+                                <span class="checkmark"></span>
+                                .wmv
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-flv">
+                                <span class="checkmark"></span>
+                                .flv
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-webm">
+                                <span class="checkmark"></span>
+                                .webm
+                            </label>
+                            <label class="extension-item">
+                                <input type="checkbox" id="ext-m4v">
+                                <span class="checkmark"></span>
+                                .m4v
+                            </label>
+                        </div>
+                        <div class="custom-extension">
+                            <input type="text" id="custom-extensions" placeholder="自定义扩展名 (用逗号分隔)">
+                            <button id="add-custom-ext" class="btn btn-secondary btn-small">添加</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>扫描选项</h3>
+                    <div class="setting-item">
+                        <label for="scan-depth">扫描深度</label>
+                        <div class="slider-container">
+                            <input type="range" id="scan-depth" min="1" max="10" value="5">
+                            <span class="slider-value" id="scan-depth-value">5</span>
+                            <span class="slider-label">层</span>
+                        </div>
+                        <small>限制子文件夹扫描的最大深度</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="include-hidden">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">包含隐藏文件</span>
+                                <span class="label-description">扫描时包含隐藏的文件和文件夹</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="follow-symlinks">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">跟随符号链接</span>
+                                <span class="label-description">扫描符号链接指向的文件和目录</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>编码检测</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="enable-ffprobe" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">启用 FFprobe 检测</span>
+                                <span class="label-description">使用 FFprobe 获取准确的编码格式信息</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="ffprobe-timeout">FFprobe 超时时间</label>
+                        <div class="input-group">
+                            <input type="number" id="ffprobe-timeout" min="5" max="60" value="10">
+                            <span class="input-suffix">秒</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="fallback-extension" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">扩展名回退检测</span>
+                                <span class="label-description">FFprobe 失败时根据文件扩展名推测编码格式</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="diagnostic-section">
+                        <button id="test-ffprobe" class="btn btn-primary">测试 FFprobe 可用性</button>
+                        <div id="ffprobe-status" class="status-indicator"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 外观主题 -->
+            <section id="appearance-tab" class="tab-content">
+                <h2>外观主题</h2>
+
+                <div class="setting-group">
+                    <h3>主题选择</h3>
+                    <div class="theme-selector">
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="light" checked>
+                            <div class="theme-preview light-theme">
+                                <div class="theme-header"></div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar"></div>
+                                    <div class="theme-main"></div>
+                                </div>
+                            </div>
+                            <span class="theme-name">浅色主题</span>
+                        </label>
+
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="dark">
+                            <div class="theme-preview dark-theme">
+                                <div class="theme-header"></div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar"></div>
+                                    <div class="theme-main"></div>
+                                </div>
+                            </div>
+                            <span class="theme-name">深色主题</span>
+                        </label>
+
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="auto">
+                            <div class="theme-preview auto-theme">
+                                <div class="theme-header"></div>
+                                <div class="theme-content">
+                                    <div class="theme-sidebar"></div>
+                                    <div class="theme-main"></div>
+                                </div>
+                            </div>
+                            <span class="theme-name">跟随系统</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>界面设置</h3>
+                    <div class="setting-item">
+                        <label for="ui-scale">界面缩放</label>
+                        <div class="slider-container">
+                            <input type="range" id="ui-scale" min="80" max="150" value="100" step="10">
+                            <span class="slider-value" id="ui-scale-value">100</span>
+                            <span class="slider-label">%</span>
+                        </div>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="compact-mode">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">紧凑模式</span>
+                                <span class="label-description">减少界面元素间距，显示更多内容</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="show-thumbnails">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">显示缩略图</span>
+                                <span class="label-description">在视频列表中显示视频缩略图</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>背景效果</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="background-blur" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">背景模糊效果</span>
+                                <span class="label-description">启用毛玻璃背景模糊效果</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="blur-intensity">模糊强度</label>
+                        <div class="slider-container">
+                            <input type="range" id="blur-intensity" min="5" max="25" value="15" step="5">
+                            <span class="slider-value" id="blur-intensity-value">15</span>
+                            <span class="slider-label">px</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 性能优化 -->
+            <section id="performance-tab" class="tab-content">
+                <h2>性能优化</h2>
+
+                <div class="setting-group">
+                    <h3>渲染优化</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="gpu-acceleration" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">GPU 硬件加速</span>
+                                <span class="label-description">启用 GPU 加速提升界面渲染性能</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="smooth-animations" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">平滑动画</span>
+                                <span class="label-description">启用界面动画效果</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="animation-speed">动画速度</label>
+                        <div class="slider-container">
+                            <input type="range" id="animation-speed" min="0.5" max="2" value="1" step="0.1">
+                            <span class="slider-value" id="animation-speed-value">1.0</span>
+                            <span class="slider-label">x</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>扫描性能</h3>
+                    <div class="setting-item">
+                        <label for="max-concurrent">最大并发扫描</label>
+                        <div class="input-group">
+                            <input type="number" id="max-concurrent" min="1" max="16" value="4">
+                            <span class="input-suffix">个文件</span>
+                        </div>
+                        <small>同时处理的视频文件数量</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="cache-size">缓存大小</label>
+                        <div class="input-group">
+                            <input type="number" id="cache-size" min="50" max="1000" value="200">
+                            <span class="input-suffix">MB</span>
+                        </div>
+                        <small>视频信息缓存的最大大小</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="enable-cache" checked>
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">启用缓存</span>
+                                <span class="label-description">缓存视频信息以提高重复扫描速度</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>内存管理</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="auto-cleanup">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">自动清理内存</span>
+                                <span class="label-description">定期清理未使用的内存</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="performance-info">
+                        <h4>当前性能状态</h4>
+                        <div class="performance-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">内存使用:</span>
+                                <span class="stat-value" id="memory-usage">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">缓存大小:</span>
+                                <span class="stat-value" id="cache-usage">--</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">已扫描文件:</span>
+                                <span class="stat-value" id="scanned-files">--</span>
+                            </div>
+                        </div>
+                        <button id="clear-cache" class="btn btn-secondary">清理缓存</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 高级设置 -->
+            <section id="advanced-tab" class="tab-content">
+                <h2>高级设置</h2>
+
+                <div class="setting-group">
+                    <h3>数据管理</h3>
+                    <div class="setting-item">
+                        <label>导出设置</label>
+                        <div class="button-group">
+                            <button id="export-settings" class="btn btn-secondary">导出配置文件</button>
+                            <button id="import-settings" class="btn btn-secondary">导入配置文件</button>
+                        </div>
+                        <small>备份或恢复您的应用设置</small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label>数据清理</label>
+                        <div class="button-group">
+                            <button id="clear-all-data" class="btn btn-danger">清除所有数据</button>
+                            <button id="reset-to-defaults" class="btn btn-warning">恢复默认设置</button>
+                        </div>
+                        <small>⚠️ 此操作不可撤销，请谨慎操作</small>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>开发者选项</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="debug-mode">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">调试模式</span>
+                                <span class="label-description">启用详细的调试日志输出</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="dev-tools">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">开发者工具</span>
+                                <span class="label-description">启动时自动打开开发者工具</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="log-level">日志级别</label>
+                        <select id="log-level" class="select-input">
+                            <option value="error">错误</option>
+                            <option value="warn">警告</option>
+                            <option value="info" selected>信息</option>
+                            <option value="debug">调试</option>
+                            <option value="verbose">详细</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>系统诊断</h3>
+                    <div class="diagnostic-tools">
+                        <button id="system-info" class="btn btn-primary">查看系统信息</button>
+                        <button id="test-performance" class="btn btn-primary">性能测试</button>
+                        <button id="check-dependencies" class="btn btn-primary">检查依赖</button>
+                        <button id="generate-report" class="btn btn-secondary">生成诊断报告</button>
+                    </div>
+
+                    <div id="diagnostic-results" class="diagnostic-results">
+                        <!-- 诊断结果将在这里显示 -->
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>快捷键设置</h3>
+                    <div class="shortcut-list">
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">打开设置</span>
+                            <kbd class="shortcut-key">Ctrl + ,</kbd>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">刷新列表</span>
+                            <kbd class="shortcut-key">F5</kbd>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">搜索视频</span>
+                            <kbd class="shortcut-key">Ctrl + F</kbd>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-action">选择目录</span>
+                            <kbd class="shortcut-key">Ctrl + O</kbd>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 关于应用 -->
+            <section id="about-tab" class="tab-content">
+                <h2>关于应用</h2>
+
+                <div class="about-content">
+                    <div class="app-info">
+                        <div class="app-icon">
+                            <span class="icon">🎬</span>
+                        </div>
+                        <div class="app-details">
+                            <h3>本地影视资源分辨率筛查工具</h3>
+                            <p class="app-version">版本 <span id="app-version">1.0.1</span></p>
+                            <p class="app-description">
+                                一款专业的本地视频文件管理和分析工具，支持多种视频格式的扫描、
+                                分析和管理，帮助您更好地整理和查看视频资源。
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="feature-list">
+                        <h4>主要功能</h4>
+                        <ul>
+                            <li>🔍 智能视频文件扫描</li>
+                            <li>📊 详细的视频信息分析</li>
+                            <li>🎯 多种分辨率筛选</li>
+                            <li>⚡ 高性能编码格式检测</li>
+                            <li>🎨 现代化用户界面</li>
+                            <li>🔧 丰富的自定义设置</li>
+                        </ul>
+                    </div>
+
+                    <div class="tech-info">
+                        <h4>技术信息</h4>
+                        <div class="tech-details">
+                            <div class="tech-item">
+                                <span class="tech-label">Electron 版本:</span>
+                                <span class="tech-value" id="electron-version">--</span>
+                            </div>
+                            <div class="tech-item">
+                                <span class="tech-label">Node.js 版本:</span>
+                                <span class="tech-value" id="node-version">--</span>
+                            </div>
+                            <div class="tech-item">
+                                <span class="tech-label">Chrome 版本:</span>
+                                <span class="tech-value" id="chrome-version">--</span>
+                            </div>
+                            <div class="tech-item">
+                                <span class="tech-label">操作系统:</span>
+                                <span class="tech-value" id="os-info">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="credits">
+                        <h4>开发团队</h4>
+                        <p>感谢所有为这个项目做出贡献的开发者和用户。</p>
+
+                        <div class="links">
+                            <button id="check-updates" class="btn btn-primary">检查更新</button>
+                            <button id="view-changelog" class="btn btn-secondary">更新日志</button>
+                            <button id="report-issue" class="btn btn-secondary">反馈问题</button>
+                        </div>
+                    </div>
+
+                    <div class="license">
+                        <h4>许可证</h4>
+                        <p>本软件基于 MIT 许可证发布。</p>
+                        <small>© 2024 本地影视资源分辨率筛查工具. 保留所有权利。</small>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 设置页面底部 -->
+        <footer class="settings-footer">
+            <div class="footer-actions">
+                <button id="save-settings" class="btn btn-primary">
+                    <span class="icon">💾</span>
+                    保存设置
+                </button>
+                <button id="cancel-settings" class="btn btn-secondary">取消</button>
+            </div>
+            <div class="footer-status">
+                <span id="save-status" class="status-text"></span>
+            </div>
+        </footer>
     </div>
+
+    <!-- 确认对话框 -->
+    <div id="confirm-dialog" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h3 id="confirm-title">确认操作</h3>
+            <p id="confirm-message">您确定要执行此操作吗？</p>
+            <div class="modal-actions">
+                <button id="confirm-yes" class="btn btn-primary">确定</button>
+                <button id="confirm-no" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/settingsRenderer.js"></script>
 </body>
 </html>
