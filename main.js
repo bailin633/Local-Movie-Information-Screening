@@ -297,11 +297,12 @@ ipcMain.on('open-file-dialog', (event) => {
     });
 });
 
-ipcMain.on('scan-directory', (event, dirPath) => {
+ipcMain.on('scan-directory', (event, dirPath, scanOptions = {}) => {
     const pythonScriptPath = path.join(__dirname, 'py', 'video_info.py');
 
     console.log('Python 脚本路径:', pythonScriptPath);
     console.log('要扫描的目录:', dirPath);
+    console.log('扫描选项:', scanOptions);
 
     if (!fs.existsSync(pythonScriptPath)) {
         console.error('未找到 Python 脚本:', pythonScriptPath);
@@ -315,7 +316,26 @@ ipcMain.on('scan-directory', (event, dirPath) => {
         return;
     }
 
-    const pythonProcess = spawn('python', [pythonScriptPath, dirPath], {
+    // 获取当前设置
+    const currentSettings = loadSettings();
+    const maxDepth = scanOptions.scanDepth || currentSettings.scanDepth || 5;
+    const includeHidden = scanOptions.includeHidden || currentSettings.includeHidden || false;
+    const supportedExtensions = scanOptions.supportedExtensions || currentSettings.supportedExtensions || ['.mp4', '.mkv', '.avi', '.mov'];
+
+    // 构建Python命令参数
+    const pythonArgs = [pythonScriptPath, dirPath, `--max-depth=${maxDepth}`];
+
+    if (includeHidden) {
+        pythonArgs.push('--include-hidden');
+    }
+
+    if (supportedExtensions && supportedExtensions.length > 0) {
+        pythonArgs.push(`--extensions=${supportedExtensions.join(',')}`);
+    }
+
+    console.log('Python 命令参数:', pythonArgs);
+
+    const pythonProcess = spawn('python', pythonArgs, {
         env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
     });
 
@@ -488,34 +508,12 @@ ipcMain.handle('browse-directory', async () => {
     }
 });
 
-// 验证路径是否存在和可访问
+// 验证路径是否存在和可访问（使用PathManager的优化版本）
 ipcMain.handle('validate-path', async (event, pathToValidate) => {
     try {
-        if (!pathToValidate || typeof pathToValidate !== 'string') {
-            return { valid: false, error: '路径不能为空' };
-        }
-
-        // 检查路径是否存在
-        if (!fs.existsSync(pathToValidate)) {
-            return { valid: false, error: '路径不存在' };
-        }
-
-        // 检查是否为目录
-        const stats = fs.statSync(pathToValidate);
-        if (!stats.isDirectory()) {
-            return { valid: false, error: '指定的路径不是目录' };
-        }
-
-        // 检查是否可读
-        try {
-            fs.accessSync(pathToValidate, fs.constants.R_OK);
-        } catch (accessError) {
-            return { valid: false, error: '没有读取权限' };
-        }
-
-        return { valid: true, path: pathToValidate };
+        return pathManager.validatePath(pathToValidate);
     } catch (error) {
-        console.error('路径验证失败:', error);
+        console.error('验证路径失败:', error);
         return { valid: false, error: error.message };
     }
 });
@@ -808,6 +806,36 @@ ipcMain.handle('organize-files-by-metadata', async (event, sourcePath, options) 
         return result;
     } catch (error) {
         console.error('按元数据整理文件失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// PathManager 相关的IPC处理程序
+ipcMain.handle('scan-directory-async', async (event, dirPath, options = {}) => {
+    try {
+        const result = await pathManager.scanDirectoryAsync(dirPath, options);
+        return result;
+    } catch (error) {
+        console.error('异步扫描目录失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('get-cache-stats', async () => {
+    try {
+        return pathManager.getCacheStats();
+    } catch (error) {
+        console.error('获取缓存统计失败:', error);
+        return null;
+    }
+});
+
+ipcMain.handle('clear-path-cache', async () => {
+    try {
+        pathManager.clearAllCache();
+        return { success: true };
+    } catch (error) {
+        console.error('清理路径缓存失败:', error);
         return { success: false, error: error.message };
     }
 });

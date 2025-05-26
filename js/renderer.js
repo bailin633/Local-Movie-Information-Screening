@@ -188,7 +188,27 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingContainer.style.display = 'block';
         progressBar.style.width = '0%';
         loadingText.textContent = '加载中 (0%)';
-        ipcRenderer.send('scan-directory', path);
+
+        // 获取当前设置并传递扫描选项
+        ipcRenderer.invoke('get-settings').then(settings => {
+            const scanOptions = {
+                scanDepth: settings.scanDepth || 5,
+                includeHidden: settings.includeHidden || false,
+                supportedExtensions: settings.supportedExtensions || ['.mp4', '.mkv', '.avi', '.mov']
+            };
+
+            console.log('使用扫描选项:', scanOptions);
+            ipcRenderer.send('scan-directory', path, scanOptions);
+        }).catch(error => {
+            console.error('获取设置失败，使用默认选项:', error);
+            // 使用默认选项
+            const defaultScanOptions = {
+                scanDepth: 5,
+                includeHidden: false,
+                supportedExtensions: ['.mp4', '.mkv', '.avi', '.mov']
+            };
+            ipcRenderer.send('scan-directory', path, defaultScanOptions);
+        });
     }
 
     openFilePathButton.addEventListener('click', () => {

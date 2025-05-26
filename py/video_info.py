@@ -124,25 +124,72 @@ def get_title_from_nfo(nfo_path):
             return title_match.group(1)
     return None
 
-def scan_directory(dir_path):
+def scan_directory(dir_path, max_depth=5, include_hidden=False, supported_extensions=None):
+    """
+    扫描目录中的视频文件，支持深度限制
+
+    Args:
+        dir_path: 要扫描的目录路径
+        max_depth: 最大扫描深度（默认5层）
+        include_hidden: 是否包含隐藏文件（默认False）
+        supported_extensions: 支持的文件扩展名列表
+    """
     # 定义视频文件扩展名
-    video_extensions = ['.mp4', '.avi', '.mkv', '.mov']
+    if supported_extensions is None:
+        video_extensions = ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm', '.m4v']
+    else:
+        video_extensions = supported_extensions
+
     video_files = []
-
-    # 计算总文件数
-    total_files = sum(1 for root, dirs, files in os.walk(dir_path)
-                      for file in files if any(file.lower().endswith(ext) for ext in video_extensions))
-
     processed_files = 0
+
+    # 首先计算总文件数（考虑深度限制）
+    total_files = 0
+    for root, dirs, files in os.walk(dir_path):
+        # 计算当前深度
+        current_depth = root[len(dir_path):].count(os.sep)
+        if current_depth >= max_depth:
+            dirs.clear()  # 不再深入子目录
+            continue
+
+        # 过滤隐藏目录
+        if not include_hidden:
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
+        for file in files:
+            # 跳过隐藏文件
+            if not include_hidden and file.startswith('.'):
+                continue
+
+            if any(file.lower().endswith(ext) for ext in video_extensions):
+                total_files += 1
+
+    print(f"开始扫描，预计处理 {total_files} 个视频文件，最大深度: {max_depth}")
+
     # 遍历目录
     for root, dirs, files in os.walk(dir_path):
+        # 计算当前深度
+        current_depth = root[len(dir_path):].count(os.sep)
+        if current_depth >= max_depth:
+            dirs.clear()  # 不再深入子目录
+            continue
+
+        # 过滤隐藏目录
+        if not include_hidden:
+            dirs[:] = [d for d in dirs if not d.startswith('.')]
+
         for file in files:
+            # 跳过隐藏文件
+            if not include_hidden and file.startswith('.'):
+                continue
+
             # 检查文件是否为视频文件
             if any(file.lower().endswith(ext) for ext in video_extensions):
                 full_path = os.path.join(root, file)
                 try:
                     # 获取视频信息
                     video_info = get_video_info(full_path)
+                    video_info['depth'] = current_depth  # 添加深度信息
 
                     # 检查 movie.nfo 文件
                     nfo_path = os.path.join(root, 'movie.nfo')
@@ -155,18 +202,19 @@ def scan_directory(dir_path):
 
                     # 更新进度
                     processed_files += 1
-                    progress = processed_files / total_files
-                    print(f"进度：{processed_files}/{total_files}", flush=True)
+                    if total_files > 0:
+                        progress = processed_files / total_files
+                        print(f"进度：{processed_files}/{total_files}", flush=True)
 
                     # 打印处理的文件信息
-                    print(f"处理文件: {video_info['name']}")
-                    print(f"  路径: {video_info['path']}")  # 添加这行
+                    print(f"处理文件: {video_info['name']} (深度: {current_depth})")
+                    print(f"  路径: {video_info['path']}")
                     print(f"  分辨率: {video_info['resolution']}")
                     print(f"  帧率: {video_info['frameRate']}")
                     print(f"  时长: {video_info['duration']} 秒")
                     print(f"  文件大小: {video_info['fileSize']} MB")
                     print(f"  码率: {video_info['bitrate'] / 1000000:.2f} Mbps" if video_info['bitrate'] else "  码率: N/A")
-                    print(f"  编码格式: {video_info['codec']}")  # 添加编码格式
+                    print(f"  编码格式: {video_info['codec']}")
                     print("-" * 40)
                 except Exception as e:
                     # 打印错误信息
@@ -178,8 +226,34 @@ if __name__ == "__main__":
     # 检查是否提供了目录参数
     if len(sys.argv) > 1:
         directory = sys.argv[1]
+
+        # 解析可选参数
+        max_depth = 5  # 默认深度
+        include_hidden = False  # 默认不包含隐藏文件
+        supported_extensions = None  # 使用默认扩展名
+
+        # 解析命令行参数
+        for i in range(2, len(sys.argv)):
+            arg = sys.argv[i]
+            if arg.startswith('--max-depth='):
+                try:
+                    max_depth = int(arg.split('=')[1])
+                    print(f"设置扫描深度: {max_depth}")
+                except ValueError:
+                    print(f"无效的深度参数: {arg}", file=sys.stderr)
+            elif arg == '--include-hidden':
+                include_hidden = True
+                print("启用隐藏文件扫描")
+            elif arg.startswith('--extensions='):
+                try:
+                    ext_str = arg.split('=')[1]
+                    supported_extensions = [ext.strip() for ext in ext_str.split(',')]
+                    print(f"使用自定义扩展名: {supported_extensions}")
+                except:
+                    print(f"无效的扩展名参数: {arg}", file=sys.stderr)
+
         # 扫描目录并获取结果
-        result = scan_directory(directory)
+        result = scan_directory(directory, max_depth, include_hidden, supported_extensions)
         print("\n最终结果:")
         # 打印JSON格式的结果
         print(json.dumps(result, ensure_ascii=False, indent=2))
