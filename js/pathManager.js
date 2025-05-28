@@ -22,6 +22,9 @@ class PathManager {
         this.maxConcurrentScans = 4; // 最大并发扫描数
         this.currentScans = 0; // 当前扫描数
         this.scanQueue = []; // 扫描队列
+        this.maxCacheSize = 200 * 1024 * 1024; // 默认200MB缓存限制
+        this.cacheEnabled = true; // 缓存启用状态
+        this.autoCleanupEnabled = true; // 自动清理启用状态
 
         // 支持的视频扩展名
         this.videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
@@ -350,7 +353,7 @@ class PathManager {
         const cacheKey = `${dirPath}:${maxDepth}:${includeHidden}:${extensions.join(',')}`;
 
         // 检查缓存
-        if (useCache) {
+        if (useCache && this.cacheEnabled) {
             const cached = this.scanCache.get(cacheKey);
             if (cached && Date.now() - cached.timestamp < this.cacheTimeout) {
                 console.log('使用缓存结果:', cacheKey);
@@ -362,11 +365,14 @@ class PathManager {
             const result = await this.performDirectoryScan(dirPath, maxDepth, includeHidden, extensions, progressCallback);
 
             // 缓存结果
-            if (useCache) {
+            if (useCache && this.cacheEnabled) {
                 this.scanCache.set(cacheKey, {
                     result,
                     timestamp: Date.now()
                 });
+
+                // 强制执行缓存大小限制
+                this.enforceCacheLimit();
             }
 
             return result;
@@ -398,7 +404,7 @@ class PathManager {
 
             try {
                 const items = await fs.readdir(currentPath);
-                const batches = this.createBatches(items, 10); // 每批处理10个项目
+                const batches = this.createBatches(items, this.maxConcurrentScans); // 使用配置的并发数
 
                 for (const batch of batches) {
                     await Promise.all(batch.map(async (item) => {
@@ -476,11 +482,23 @@ class PathManager {
      * 获取缓存统计信息
      */
     getCacheStats() {
+        // 计算缓存大小
+        let cacheSize = 0;
+        for (const [key, value] of this.scanCache.entries()) {
+            cacheSize += JSON.stringify(value).length * 2; // 粗略估算字节大小
+        }
+
         return {
             scanCacheSize: this.scanCache.size,
             validationCacheSize: this.pathValidationCache.size,
             currentScans: this.currentScans,
-            queueLength: this.scanQueue.length
+            queueLength: this.scanQueue.length,
+            cacheSizeBytes: cacheSize,
+            cacheSizeMB: Math.round(cacheSize / 1024 / 1024 * 100) / 100,
+            maxCacheSizeMB: Math.round(this.maxCacheSize / 1024 / 1024),
+            cacheEnabled: this.cacheEnabled,
+            autoCleanupEnabled: this.autoCleanupEnabled,
+            maxConcurrentScans: this.maxConcurrentScans
         };
     }
 
@@ -498,8 +516,66 @@ class PathManager {
      */
     setCacheConfig(config) {
         if (config.timeout) this.cacheTimeout = config.timeout;
-        if (config.maxConcurrent) this.maxConcurrentScans = config.maxConcurrent;
+        if (config.maxConcurrent) {
+            this.maxConcurrentScans = config.maxConcurrent;
+            console.log(`设置最大并发扫描数: ${this.maxConcurrentScans}`);
+        }
         if (config.videoExtensions) this.videoExtensions = config.videoExtensions;
+        if (config.cacheSize !== undefined) {
+            this.maxCacheSize = config.cacheSize * 1024 * 1024; // 转换为字节
+            this.enforceCacheLimit();
+        }
+        if (config.enableCache !== undefined) {
+            this.cacheEnabled = config.enableCache;
+            if (!this.cacheEnabled) {
+                this.clearAllCache();
+            }
+        }
+        if (config.autoCleanup !== undefined) {
+            this.autoCleanupEnabled = config.autoCleanup;
+        }
+
+        console.log('缓存配置已更新:', {
+            maxConcurrent: this.maxConcurrentScans,
+            cacheSize: config.cacheSize,
+            enableCache: this.cacheEnabled,
+            autoCleanup: this.autoCleanupEnabled
+        });
+    }
+
+    /**
+     * 强制执行缓存大小限制
+     */
+    enforceCacheLimit() {
+        if (!this.maxCacheSize) return;
+
+        let currentSize = 0;
+        const cacheEntries = [];
+
+        // 计算当前缓存大小
+        for (const [key, value] of this.scanCache.entries()) {
+            const entrySize = JSON.stringify(value).length * 2; // 粗略估算字节大小
+            currentSize += entrySize;
+            cacheEntries.push({ key, size: entrySize, timestamp: value.timestamp });
+        }
+
+        // 如果超过限制，删除最旧的条目
+        if (currentSize > this.maxCacheSize) {
+            cacheEntries.sort((a, b) => a.timestamp - b.timestamp);
+
+            let removedSize = 0;
+            let removedCount = 0;
+
+            for (const entry of cacheEntries) {
+                if (currentSize - removedSize <= this.maxCacheSize) break;
+
+                this.scanCache.delete(entry.key);
+                removedSize += entry.size;
+                removedCount++;
+            }
+
+            console.log(`缓存清理完成: 删除 ${removedCount} 个条目, 释放 ${Math.round(removedSize / 1024)} KB`);
+        }
     }
 }
 

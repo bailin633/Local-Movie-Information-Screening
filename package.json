@@ -1,6 +1,6 @@
 {
   "name": "viedeo_scanner_pro",
-  "version": "1.0.15",
+  "version": "1.0.3",
   "description": "An Electron application",
   "main": "main.js",
   "scripts": {

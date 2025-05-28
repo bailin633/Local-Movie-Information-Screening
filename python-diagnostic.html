@@ -32,10 +32,19 @@
 
         .section {
             margin-bottom: 25px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background-color: #fafafa;
+            padding: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .section:hover {
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
         }
 
         .section h2 {
@@ -46,24 +55,92 @@
         }
 
         .button {
-            background-color: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 5px;
+            background: white;
+            color: #333;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            padding: 12px 20px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            margin: 5px;
-            transition: background-color 0.3s;
+            font-weight: 500;
+            margin: 6px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            min-width: 140px;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
         }
 
         .button:hover {
-            background-color: #2980b9;
+            background: #f8f8f8;
+            border-color: rgba(0, 0, 0, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .button:active {
+            background: #e8e8e8;
+            transform: translateY(0);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
         }
 
         .button:disabled {
-            background-color: #bdc3c7;
+            background: #f5f5f5;
+            color: #999;
+            border-color: rgba(0, 0, 0, 0.05);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* 主要操作按钮样式 */
+        .button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .button.primary:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .button.primary:active {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+        }
+
+        /* 危险操作按钮样式 */
+        .button.danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .button.danger:hover {
+            background: linear-gradient(135deg, #ee5a52 0%, #ff6b6b 100%);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+
+        /* 成功操作按钮样式 */
+        .button.success {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 15px rgba(81, 207, 102, 0.3);
+        }
+
+        .button.success:hover {
+            background: linear-gradient(135deg, #40c057 0%, #51cf66 100%);
+            box-shadow: 0 6px 20px rgba(81, 207, 102, 0.4);
         }
 
         .success {
@@ -127,11 +204,23 @@
         }
 
         .path-input {
-            width: 70%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 3px;
-            font-family: monospace;
+            flex: 1;
+            padding: 12px 18px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: rgba(255, 255, 255, 0.9);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+            outline: none;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .path-input:focus {
+            border-color: rgba(102, 126, 234, 0.5);
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
         .flex-row {
@@ -174,7 +263,7 @@
 
         <div class="section">
             <h2>诊断操作</h2>
-            <button class="button" onclick="runDiagnosis()">🔍 运行完整诊断</button>
+            <button class="button primary" onclick="runDiagnosis()">🔍 运行完整诊断</button>
             <button class="button" onclick="testPython()">🧪 测试Python</button>
             <button class="button" onclick="checkScriptPath()">📄 检查脚本路径</button>
             <button class="button" onclick="checkDependencies()">📦 检查依赖库</button>
@@ -188,15 +277,15 @@
                 <p>点击"检查依赖库"查看当前状态...</p>
             </div>
             <div id="dependency-actions" style="display: none;">
-                <button class="button" onclick="installAllDependencies()">📦 一键安装所有缺失库</button>
+                <button class="button success" onclick="installAllDependencies()">📦 一键安装所有缺失库</button>
                 <button class="button" onclick="showInstallationGuide()">📖 查看手动安装指南</button>
             </div>
             <div id="installation-progress" style="display: none;">
-                <h3>安装进度</h3>
-                <div class="progress-bar">
-                    <div id="progress-fill" style="width: 0%; background-color: #3498db; height: 20px; border-radius: 10px; transition: width 0.3s;"></div>
+                <h3 style="color: #34495e; margin-bottom: 15px;">📦 安装进度</h3>
+                <div class="progress-bar" style="width: 100%; height: 24px; background: rgba(0,0,0,0.1); border-radius: 12px; overflow: hidden; margin-bottom: 10px;">
+                    <div id="progress-fill" style="width: 0%; background: linear-gradient(135deg, #51cf66 0%, #40c057 100%); height: 100%; border-radius: 12px; transition: width 0.3s ease; box-shadow: 0 2px 8px rgba(81, 207, 102, 0.3);"></div>
                 </div>
-                <div id="progress-text">准备安装...</div>
+                <div id="progress-text" style="color: #666; font-size: 14px; text-align: center;">准备安装...</div>
             </div>
         </div>
 
@@ -205,8 +294,8 @@
             <div class="flex-row">
                 <input type="text" id="custom-python-path" class="path-input"
                        placeholder="例如: C:\Python39\python.exe">
-                <button class="button" onclick="setCustomPythonPath()">设置路径</button>
-                <button class="button" onclick="browsePythonPath()">浏览...</button>
+                <button class="button primary" onclick="setCustomPythonPath()">⚙️ 设置路径</button>
+                <button class="button" onclick="browsePythonPath()">📁 浏览...</button>
             </div>
             <p style="font-size: 12px; color: #666; margin-top: 5px;">
                 如果自动检测失败，您可以手动指定Python可执行文件的完整路径

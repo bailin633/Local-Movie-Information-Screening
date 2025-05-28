@@ -102,6 +102,11 @@ const DEFAULT_SETTINGS = {
     ffprobeTimeout: 10,
     fallbackExtension: true,
 
+    // 自定义扫描格式
+    enableCustomScanFormat: false,
+    scanFormatPatterns: [],
+    scanMode: 'all',
+
     // 外观设置
     theme: 'light',
     uiScale: 100,
@@ -281,6 +286,26 @@ function setupSpecialButtons() {
         addExtBtn.addEventListener('click', addCustomExtension);
     }
 
+    // 自定义扫描格式相关
+    const enableCustomFormatCheckbox = document.getElementById('enable-custom-scan-format');
+    if (enableCustomFormatCheckbox) {
+        enableCustomFormatCheckbox.addEventListener('change', toggleCustomFormatContainer);
+    }
+
+    const addPatternBtn = document.getElementById('add-pattern-btn');
+    if (addPatternBtn) {
+        addPatternBtn.addEventListener('click', addScanPattern);
+    }
+
+    const newPatternInput = document.getElementById('new-pattern');
+    if (newPatternInput) {
+        newPatternInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addScanPattern();
+            }
+        });
+    }
+
     // 清理缓存
     const clearCacheBtn = document.getElementById('clear-cache');
     if (clearCacheBtn) {
@@ -433,6 +458,12 @@ function applySettingsToUI() {
     // 扩展名复选框
     updateExtensionCheckboxes();
 
+    // 自定义扫描格式
+    updateCustomScanFormatUI();
+
+    // 性能设置
+    updatePerformanceSettingsUI();
+
     // 最近路径
     updateRecentPaths();
 }
@@ -441,12 +472,61 @@ function applySettingsToUI() {
  * 更新扩展名复选框
  */
 function updateExtensionCheckboxes() {
-    const extensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
-    extensions.forEach(ext => {
-        const checkbox = document.getElementById(`ext-${ext.substring(1)}`);
-        if (checkbox) {
-            checkbox.checked = currentSettings.supportedExtensions.includes(ext);
-        }
+    // 重新生成扩展名列表
+    generateExtensionList();
+    // 更新统计信息
+    updateExtensionStats();
+    // 更新自定义扩展名管理
+    updateCustomExtensionsList();
+}
+
+/**
+ * 生成扩展名列表
+ */
+function generateExtensionList() {
+    const container = document.getElementById('extension-list');
+    if (!container) return;
+
+    // 预设扩展名
+    const presetExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
+
+    // 获取所有扩展名（预设 + 自定义）
+    const allExtensions = [...new Set([...presetExtensions, ...currentSettings.supportedExtensions])];
+
+    container.innerHTML = '';
+
+    allExtensions.forEach(ext => {
+        const isCustom = !presetExtensions.includes(ext);
+        const isChecked = currentSettings.supportedExtensions.includes(ext);
+
+        const extensionElement = document.createElement('label');
+        extensionElement.className = `extension-item ${isCustom ? 'custom' : ''}`;
+
+        extensionElement.innerHTML = `
+            <input type="checkbox" id="ext-${ext.substring(1)}" ${isChecked ? 'checked' : ''}>
+            <span class="checkmark"></span>
+            <span class="extension-name">${ext}</span>
+            ${isCustom ? `<button class="extension-remove" onclick="removeCustomExtension('${ext}')" title="删除此扩展名">×</button>` : ''}
+        `;
+
+        // 添加事件监听
+        const checkbox = extensionElement.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                if (!currentSettings.supportedExtensions.includes(ext)) {
+                    currentSettings.supportedExtensions.push(ext);
+                }
+            } else {
+                const index = currentSettings.supportedExtensions.indexOf(ext);
+                if (index > -1) {
+                    currentSettings.supportedExtensions.splice(index, 1);
+                }
+            }
+            updateExtensionStats();
+            markAsChanged();
+        });
+
+        container.appendChild(extensionElement);
     });
 }
 
@@ -854,24 +934,499 @@ async function clearRecentPaths() {
 }
 
 /**
+ * 更新扩展名统计
+ */
+function updateExtensionStats() {
+    const selectedCount = document.getElementById('selected-count');
+    if (selectedCount) {
+        selectedCount.textContent = currentSettings.supportedExtensions.length;
+    }
+}
+
+/**
+ * 更新自定义扩展名列表
+ */
+function updateCustomExtensionsList() {
+    const container = document.getElementById('custom-extensions-list');
+    if (!container) return;
+
+    const presetExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v'];
+    const customExtensions = currentSettings.supportedExtensions.filter(ext => !presetExtensions.includes(ext));
+
+    container.innerHTML = '';
+
+    if (customExtensions.length === 0) {
+        container.innerHTML = '<div class="empty-extensions">暂无自定义扩展名</div>';
+        return;
+    }
+
+    customExtensions.forEach(ext => {
+        const tagElement = document.createElement('div');
+        tagElement.className = 'custom-extension-tag';
+        tagElement.innerHTML = `
+            <span>${ext}</span>
+            <button class="remove-tag" onclick="removeCustomExtension('${ext}')" title="删除此扩展名">×</button>
+        `;
+        container.appendChild(tagElement);
+    });
+}
+
+/**
+ * 移除自定义扩展名
+ */
+function removeCustomExtension(extension) {
+    const index = currentSettings.supportedExtensions.indexOf(extension);
+    if (index > -1) {
+        currentSettings.supportedExtensions.splice(index, 1);
+        updateExtensionCheckboxes();
+        markAsChanged();
+        showStatusMessage(`已移除扩展名: ${extension}`, 'success');
+    }
+}
+
+/**
+ * 验证扩展名格式
+ */
+function validateExtension(extension) {
+    // 基本验证：必须以.开头，只包含字母数字
+    const validFormat = /^\.[a-zA-Z0-9]+$/;
+    return validFormat.test(extension);
+}
+
+/**
  * 添加自定义扩展名
  */
 function addCustomExtension() {
     const input = document.getElementById('custom-extensions');
     const extensions = input.value.split(',').map(ext => ext.trim()).filter(ext => ext);
 
-    if (extensions.length === 0) return;
+    if (extensions.length === 0) {
+        showStatusMessage('请输入有效的扩展名', 'error');
+        return;
+    }
+
+    let addedCount = 0;
+    let errorCount = 0;
 
     extensions.forEach(ext => {
+        // 确保以.开头
         if (!ext.startsWith('.')) ext = '.' + ext;
-        if (!currentSettings.supportedExtensions.includes(ext)) {
-            currentSettings.supportedExtensions.push(ext);
+
+        // 验证格式
+        if (!validateExtension(ext)) {
+            errorCount++;
+            return;
         }
+
+        // 检查是否已存在
+        if (currentSettings.supportedExtensions.includes(ext)) {
+            return;
+        }
+
+        // 添加到设置
+        currentSettings.supportedExtensions.push(ext);
+        addedCount++;
     });
 
     input.value = '';
-    updateExtensionCheckboxes();
+
+    if (addedCount > 0) {
+        updateExtensionCheckboxes();
+        markAsChanged();
+        showStatusMessage(`已添加 ${addedCount} 个扩展名`, 'success');
+    }
+
+    if (errorCount > 0) {
+        showStatusMessage(`${errorCount} 个扩展名格式无效`, 'warning');
+    }
+}
+
+/**
+ * 设置预设扩展名组
+ */
+function setPresetExtensions(preset) {
+    const presets = {
+        common: ['.mp4', '.mkv', '.avi', '.mov'],
+        all: ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.ts', '.rmvb', '.3gp', '.asf', '.divx'],
+        hd: ['.mp4', '.mkv', '.mov', '.webm', '.m4v'],
+        none: []
+    };
+
+    if (presets[preset]) {
+        currentSettings.supportedExtensions = [...presets[preset]];
+        updateExtensionCheckboxes();
+        markAsChanged();
+        showStatusMessage(`已应用${getPresetName(preset)}`, 'success');
+    }
+}
+
+/**
+ * 获取预设名称
+ */
+function getPresetName(preset) {
+    const names = {
+        common: '常用格式',
+        all: '全部格式',
+        hd: '高清格式',
+        none: '清除选择'
+    };
+    return names[preset] || preset;
+}
+
+/**
+ * 检测GPU加速状态
+ */
+async function detectGPUAcceleration() {
+    try {
+        const gpuInfo = await ipcRenderer.invoke('get-gpu-info');
+        const gpuStatusElement = document.getElementById('gpu-status');
+        const gpuDetailsElement = document.getElementById('gpu-details');
+
+        if (gpuStatusElement) {
+            if (gpuInfo.error) {
+                gpuStatusElement.textContent = '检测失败';
+                gpuStatusElement.className = 'status-error';
+            } else if (gpuInfo.hardwareAcceleration) {
+                gpuStatusElement.textContent = '已启用';
+                gpuStatusElement.className = 'status-success';
+            } else {
+                gpuStatusElement.textContent = '已禁用';
+                gpuStatusElement.className = 'status-warning';
+            }
+        }
+
+        if (gpuDetailsElement && !gpuInfo.error) {
+            const details = [];
+            if (gpuInfo.gpuInfo && gpuInfo.gpuInfo.auxAttributes) {
+                details.push(`GPU: ${gpuInfo.gpuInfo.auxAttributes.vendorId || '未知'}`);
+            }
+            if (gpuInfo.gpuFeatureStatus) {
+                const features = Object.keys(gpuInfo.gpuFeatureStatus).filter(key =>
+                    gpuInfo.gpuFeatureStatus[key] === 'enabled'
+                ).length;
+                details.push(`启用功能: ${features}`);
+            }
+            gpuDetailsElement.textContent = details.join(' | ') || '无详细信息';
+        }
+
+        return gpuInfo;
+    } catch (error) {
+        console.error('检测GPU加速失败:', error);
+        const gpuStatusElement = document.getElementById('gpu-status');
+        if (gpuStatusElement) {
+            gpuStatusElement.textContent = '检测失败';
+            gpuStatusElement.className = 'status-error';
+        }
+        return null;
+    }
+}
+
+/**
+ * 测试GPU性能
+ */
+async function testGPUPerformance() {
+    const testButton = document.getElementById('test-gpu-performance');
+    const resultElement = document.getElementById('gpu-test-result');
+
+    if (testButton) {
+        testButton.disabled = true;
+        testButton.textContent = '测试中...';
+    }
+
+    try {
+        const result = await ipcRenderer.invoke('test-gpu-performance');
+
+        if (resultElement) {
+            if (result.error) {
+                resultElement.textContent = `测试失败: ${result.error}`;
+                resultElement.className = 'test-result error';
+            } else {
+                const fps = result.fps || 0;
+                const renderTime = result.renderTime || 0;
+                let performance = '差';
+
+                if (fps > 45) performance = '优秀';
+                else if (fps > 30) performance = '良好';
+                else if (fps > 15) performance = '一般';
+
+                resultElement.innerHTML = `
+                    <div>渲染时间: ${renderTime}ms</div>
+                    <div>估算FPS: ${fps}</div>
+                    <div>性能评级: ${performance}</div>
+                `;
+                resultElement.className = `test-result ${performance === '优秀' ? 'success' : performance === '良好' ? 'warning' : 'error'}`;
+            }
+        }
+
+        showStatusMessage('GPU性能测试完成', 'success');
+    } catch (error) {
+        console.error('GPU性能测试失败:', error);
+        if (resultElement) {
+            resultElement.textContent = `测试失败: ${error.message}`;
+            resultElement.className = 'test-result error';
+        }
+        showStatusMessage('GPU性能测试失败', 'error');
+    } finally {
+        if (testButton) {
+            testButton.disabled = false;
+            testButton.textContent = '测试GPU性能';
+        }
+    }
+}
+
+/**
+ * 更新动画速度显示
+ */
+function updateAnimationSpeedDisplay() {
+    const slider = document.getElementById('animation-speed');
+    const display = document.getElementById('animation-speed-value');
+
+    if (slider && display) {
+        const value = parseFloat(slider.value);
+        display.textContent = `${value}x`;
+
+        // 实时预览动画速度
+        const root = document.documentElement;
+        root.style.setProperty('--animation-speed', value.toString());
+
+        // 更新动画持续时间
+        const baseTransitionDuration = 0.3;
+        const adjustedDuration = baseTransitionDuration / value;
+        root.style.setProperty('--transition-duration', `${adjustedDuration}s`);
+        root.style.setProperty('--transition-duration-fast', `${adjustedDuration * 0.5}s`);
+        root.style.setProperty('--transition-duration-slow', `${adjustedDuration * 1.5}s`);
+    }
+}
+
+/**
+ * 更新性能设置UI
+ */
+function updatePerformanceSettingsUI() {
+    // GPU加速复选框
+    const gpuAccelerationCheckbox = document.getElementById('gpu-acceleration');
+    if (gpuAccelerationCheckbox) {
+        gpuAccelerationCheckbox.checked = currentSettings.gpuAcceleration !== false;
+    }
+
+    // 平滑动画复选框
+    const smoothAnimationsCheckbox = document.getElementById('smooth-animations');
+    if (smoothAnimationsCheckbox) {
+        smoothAnimationsCheckbox.checked = currentSettings.smoothAnimations !== false;
+    }
+
+    // 动画速度滑块
+    const animationSpeedSlider = document.getElementById('animation-speed');
+    if (animationSpeedSlider) {
+        animationSpeedSlider.value = currentSettings.animationSpeed || 1.0;
+        updateAnimationSpeedDisplay();
+    }
+
+    // 扫描性能设置
+    const maxConcurrentInput = document.getElementById('max-concurrent');
+    if (maxConcurrentInput) {
+        maxConcurrentInput.value = currentSettings.maxConcurrent || 4;
+    }
+
+    const cacheSizeInput = document.getElementById('cache-size');
+    if (cacheSizeInput) {
+        cacheSizeInput.value = currentSettings.cacheSize || 200;
+    }
+
+    const enableCacheCheckbox = document.getElementById('enable-cache');
+    if (enableCacheCheckbox) {
+        enableCacheCheckbox.checked = currentSettings.enableCache !== false;
+    }
+
+    const autoCleanupCheckbox = document.getElementById('auto-cleanup');
+    if (autoCleanupCheckbox) {
+        autoCleanupCheckbox.checked = currentSettings.autoCleanup !== false;
+    }
+
+    // 自动检测GPU状态
+    setTimeout(() => {
+        detectGPUAcceleration();
+        updatePerformanceStats();
+    }, 500);
+}
+
+/**
+ * 更新性能统计信息
+ */
+async function updatePerformanceStats() {
+    try {
+        // 获取缓存统计信息
+        const cacheStats = await ipcRenderer.invoke('get-cache-stats');
+
+        // 获取内存使用情况
+        const memoryInfo = await ipcRenderer.invoke('get-system-info');
+
+        // 更新内存使用显示
+        const memoryUsageElement = document.getElementById('memory-usage');
+        if (memoryUsageElement && memoryInfo) {
+            const memoryUsageMB = Math.round(memoryInfo.memoryUsage / 1024 / 1024);
+            memoryUsageElement.textContent = `${memoryUsageMB} MB`;
+        }
+
+        // 更新缓存使用显示
+        const cacheUsageElement = document.getElementById('cache-usage');
+        if (cacheUsageElement && cacheStats) {
+            cacheUsageElement.textContent = `${cacheStats.cacheSizeMB} / ${cacheStats.maxCacheSizeMB} MB`;
+        }
+
+        // 更新已扫描文件数
+        const scannedFilesElement = document.getElementById('scanned-files');
+        if (scannedFilesElement && cacheStats) {
+            scannedFilesElement.textContent = `${cacheStats.scanCacheSize} 个缓存项`;
+        }
+
+        console.log('性能统计已更新:', { cacheStats, memoryInfo });
+    } catch (error) {
+        console.error('更新性能统计失败:', error);
+    }
+}
+
+/**
+ * 清理缓存
+ */
+async function clearCache() {
+    try {
+        const result = await ipcRenderer.invoke('clear-path-cache');
+
+        if (result.success) {
+            showStatusMessage('缓存已清理', 'success');
+
+            // 更新性能统计显示
+            setTimeout(() => {
+                updatePerformanceStats();
+            }, 500);
+        } else {
+            showStatusMessage('清理缓存失败', 'error');
+        }
+    } catch (error) {
+        console.error('清理缓存失败:', error);
+        showStatusMessage('清理缓存失败', 'error');
+    }
+}
+
+/**
+ * 切换自定义格式容器显示
+ */
+function toggleCustomFormatContainer() {
+    const checkbox = document.getElementById('enable-custom-scan-format');
+    const container = document.getElementById('custom-format-container');
+
+    if (checkbox && container) {
+        if (checkbox.checked) {
+            container.style.display = 'block';
+            // 初始化模式列表
+            updatePatternList();
+        } else {
+            container.style.display = 'none';
+        }
+        markAsChanged();
+    }
+}
+
+/**
+ * 添加扫描模式
+ */
+function addScanPattern() {
+    const input = document.getElementById('new-pattern');
+    const pattern = input.value.trim();
+
+    if (!pattern) {
+        showStatusMessage('请输入有效的扫描模式', 'error');
+        return;
+    }
+
+    // 验证模式格式
+    if (!validatePattern(pattern)) {
+        showStatusMessage('模式格式无效，请检查通配符使用', 'error');
+        return;
+    }
+
+    // 检查是否已存在
+    if (currentSettings.scanFormatPatterns.includes(pattern)) {
+        showStatusMessage('该模式已存在', 'warning');
+        return;
+    }
+
+    // 添加到设置
+    currentSettings.scanFormatPatterns.push(pattern);
+    input.value = '';
+    updatePatternList();
     markAsChanged();
+    showStatusMessage('扫描模式已添加', 'success');
+}
+
+/**
+ * 移除扫描模式
+ */
+function removeScanPattern(index) {
+    if (index >= 0 && index < currentSettings.scanFormatPatterns.length) {
+        const removedPattern = currentSettings.scanFormatPatterns.splice(index, 1)[0];
+        updatePatternList();
+        markAsChanged();
+        showStatusMessage(`已移除模式: ${removedPattern}`, 'success');
+    }
+}
+
+/**
+ * 验证模式格式
+ */
+function validatePattern(pattern) {
+    // 基本验证：检查是否包含有效字符
+    const validChars = /^[a-zA-Z0-9\*\?\[\]\-_\.\s\u4e00-\u9fff]+$/;
+    return validChars.test(pattern);
+}
+
+/**
+ * 更新模式列表显示
+ */
+function updatePatternList() {
+    const container = document.getElementById('pattern-list');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (currentSettings.scanFormatPatterns.length === 0) {
+        container.innerHTML = '<div class="empty-patterns">暂无自定义扫描模式</div>';
+        return;
+    }
+
+    currentSettings.scanFormatPatterns.forEach((pattern, index) => {
+        const patternElement = document.createElement('div');
+        patternElement.className = 'pattern-item';
+        patternElement.innerHTML = `
+            <span class="pattern-text">${pattern}</span>
+            <button class="pattern-remove" onclick="removeScanPattern(${index})" title="删除此模式">×</button>
+        `;
+        container.appendChild(patternElement);
+    });
+}
+
+/**
+ * 更新自定义扫描格式UI
+ */
+function updateCustomScanFormatUI() {
+    const enableCheckbox = document.getElementById('enable-custom-scan-format');
+    const container = document.getElementById('custom-format-container');
+    const scanModeSelect = document.getElementById('scan-mode');
+
+    if (enableCheckbox) {
+        enableCheckbox.checked = currentSettings.enableCustomScanFormat;
+    }
+
+    if (container) {
+        container.style.display = currentSettings.enableCustomScanFormat ? 'block' : 'none';
+    }
+
+    if (scanModeSelect) {
+        scanModeSelect.value = currentSettings.scanMode || 'all';
+    }
+
+    // 更新模式列表
+    updatePatternList();
 }
 
 /**
@@ -1112,7 +1667,7 @@ function viewChangelog() {
  * 反馈问题
  */
 function reportIssue() {
-    ipcRenderer.invoke('open-external', 'https://github.com/your-repo/issues');
+    ipcRenderer.invoke('open-external', 'https://github.com/bailin633/Local-Movie-Information-Screening/issues');
 }
 
 /**
@@ -1576,6 +2131,145 @@ function initializeEnhancements() {
             handleOrganizeByMetadata(e.target.checked);
         });
     }
+
+    // 添加自定义扩展名按钮
+    const addExtBtn = document.getElementById('add-custom-ext');
+    if (addExtBtn) {
+        addExtBtn.addEventListener('click', addCustomExtension);
+    }
+
+    // 预设扩展名组按钮
+    const presetButtons = {
+        'preset-common': 'common',
+        'preset-all': 'all',
+        'preset-hd': 'hd',
+        'preset-none': 'none'
+    };
+
+    Object.entries(presetButtons).forEach(([buttonId, preset]) => {
+        const button = document.getElementById(buttonId);
+        if (button) {
+            button.addEventListener('click', () => setPresetExtensions(preset));
+        }
+    });
+
+    // 自定义扩展名输入框回车事件
+    const customExtInput = document.getElementById('custom-extensions');
+    if (customExtInput) {
+        customExtInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addCustomExtension();
+            }
+        });
+    }
+
+    // GPU检测按钮
+    const detectGpuBtn = document.getElementById('detect-gpu');
+    if (detectGpuBtn) {
+        detectGpuBtn.addEventListener('click', detectGPUAcceleration);
+    }
+
+    // GPU性能测试按钮
+    const testGpuBtn = document.getElementById('test-gpu-performance');
+    if (testGpuBtn) {
+        testGpuBtn.addEventListener('click', testGPUPerformance);
+    }
+
+    // 动画速度滑块
+    const animationSpeedSlider = document.getElementById('animation-speed');
+    if (animationSpeedSlider) {
+        animationSpeedSlider.addEventListener('input', updateAnimationSpeedDisplay);
+        animationSpeedSlider.addEventListener('change', () => {
+            currentSettings.animationSpeed = parseFloat(animationSpeedSlider.value);
+            markAsChanged();
+        });
+    }
+
+    // 平滑动画复选框
+    const smoothAnimationsCheckbox = document.getElementById('smooth-animations');
+    if (smoothAnimationsCheckbox) {
+        smoothAnimationsCheckbox.addEventListener('change', (e) => {
+            currentSettings.smoothAnimations = e.target.checked;
+
+            // 立即应用动画设置
+            const root = document.documentElement;
+            if (e.target.checked) {
+                root.classList.remove('no-animations');
+            } else {
+                root.classList.add('no-animations');
+            }
+
+            markAsChanged();
+        });
+    }
+
+    // GPU加速复选框
+    const gpuAccelerationCheckbox = document.getElementById('gpu-acceleration');
+    if (gpuAccelerationCheckbox) {
+        gpuAccelerationCheckbox.addEventListener('change', (e) => {
+            currentSettings.gpuAcceleration = e.target.checked;
+
+            // 立即应用GPU设置
+            const root = document.documentElement;
+            if (e.target.checked) {
+                root.classList.remove('no-gpu');
+            } else {
+                root.classList.add('no-gpu');
+            }
+
+            markAsChanged();
+            showStatusMessage('GPU加速设置将在重启应用后生效', 'warning');
+        });
+    }
+
+    // 扫描性能设置事件监听器
+    const maxConcurrentInput = document.getElementById('max-concurrent');
+    if (maxConcurrentInput) {
+        maxConcurrentInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            if (value >= 1 && value <= 16) {
+                currentSettings.maxConcurrent = value;
+                markAsChanged();
+                showStatusMessage(`并发扫描数已设置为 ${value}`, 'success');
+            }
+        });
+    }
+
+    const cacheSizeInput = document.getElementById('cache-size');
+    if (cacheSizeInput) {
+        cacheSizeInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            if (value >= 50 && value <= 1000) {
+                currentSettings.cacheSize = value;
+                markAsChanged();
+                showStatusMessage(`缓存大小已设置为 ${value} MB`, 'success');
+            }
+        });
+    }
+
+    const enableCacheCheckbox = document.getElementById('enable-cache');
+    if (enableCacheCheckbox) {
+        enableCacheCheckbox.addEventListener('change', (e) => {
+            currentSettings.enableCache = e.target.checked;
+            markAsChanged();
+            showStatusMessage(e.target.checked ? '缓存已启用' : '缓存已禁用', 'info');
+        });
+    }
+
+    const autoCleanupCheckbox = document.getElementById('auto-cleanup');
+    if (autoCleanupCheckbox) {
+        autoCleanupCheckbox.addEventListener('change', (e) => {
+            currentSettings.autoCleanup = e.target.checked;
+            markAsChanged();
+            showStatusMessage(e.target.checked ? '自动清理已启用' : '自动清理已禁用', 'info');
+        });
+    }
+
+    // 清理缓存按钮
+    const clearCacheBtn = document.getElementById('clear-cache');
+    if (clearCacheBtn) {
+        clearCacheBtn.addEventListener('click', clearCache);
+    }
 }
 
 /**
@@ -1586,6 +2280,49 @@ function updateOrganizeProgress(progress) {
     if (statusEl) {
         statusEl.textContent = `${progress.message} (${progress.percentage}%)`;
         statusEl.className = 'status-text info';
+    }
+}
+
+/**
+ * 处理自动刷新设置切换
+ */
+async function handleAutoRefreshToggle(enabled) {
+    try {
+        if (enabled) {
+            // 启用自动刷新
+            const result = await ipcRenderer.invoke('start-file-watching', currentSettings.defaultScanPath || '');
+            if (result.success) {
+                showStatusMessage('自动刷新已启用', 'success');
+                console.log('文件监控已启动');
+            } else {
+                showStatusMessage(`启用自动刷新失败: ${result.error}`, 'error');
+                // 如果启动失败，取消勾选
+                const autoRefreshCheckbox = document.getElementById('auto-refresh');
+                if (autoRefreshCheckbox) {
+                    autoRefreshCheckbox.checked = false;
+                    currentSettings.autoRefresh = false;
+                }
+            }
+        } else {
+            // 禁用自动刷新
+            const result = await ipcRenderer.invoke('stop-file-watching');
+            if (result.success) {
+                showStatusMessage('自动刷新已禁用', 'success');
+                console.log('文件监控已停止');
+            } else {
+                showStatusMessage(`禁用自动刷新失败: ${result.error}`, 'error');
+            }
+        }
+    } catch (error) {
+        console.error('切换自动刷新失败:', error);
+        showStatusMessage(`操作失败: ${error.message}`, 'error');
+
+        // 发生错误时恢复复选框状态
+        const autoRefreshCheckbox = document.getElementById('auto-refresh');
+        if (autoRefreshCheckbox) {
+            autoRefreshCheckbox.checked = !enabled;
+            currentSettings.autoRefresh = !enabled;
+        }
     }
 }
 

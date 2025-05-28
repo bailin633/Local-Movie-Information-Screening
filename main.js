@@ -72,13 +72,10 @@ const DEFAULT_SETTINGS = {
     ffprobeTimeout: 10,
     fallbackExtension: true,
 
-    // 外观设置
-    theme: 'light',
-    uiScale: 100,
-    compactMode: false,
-    showThumbnails: false,
-    backgroundBlur: true,
-    blurIntensity: 15,
+    // 自定义扫描格式
+    enableCustomScanFormat: false,
+    scanFormatPatterns: [],
+    scanMode: 'all',
 
     // 性能设置
     gpuAcceleration: true,
@@ -88,6 +85,14 @@ const DEFAULT_SETTINGS = {
     cacheSize: 200,
     enableCache: true,
     autoCleanup: true,
+
+    // 外观设置
+    theme: 'light',
+    uiScale: 100,
+    compactMode: false,
+    showThumbnails: false,
+    backgroundBlur: true,
+    blurIntensity: 15,
 
     // 高级设置
     debugMode: false,
@@ -122,13 +127,19 @@ function saveSettings(settings) {
 }
 
 function createMainWindow() {
+    // 获取当前设置以应用GPU加速配置
+    const settings = loadSettings();
+
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 700,
         autoHideMenuBar: true,
+        icon: path.join(__dirname, 'build', 'icon.png'),
         webPreferences: {
             nodeIntegration: true,
-            contextIsolation: false
+            contextIsolation: false,
+            // 根据设置启用/禁用硬件加速
+            hardwareAcceleration: settings.gpuAcceleration !== false
         }
     });
 
@@ -138,6 +149,15 @@ function createMainWindow() {
 
     // 设置pathManager的主窗口引用
     pathManager.setMainWindow(mainWindow);
+
+    // 应用初始设置到PathManager
+    const initialSettings = loadSettings();
+    pathManager.setCacheConfig({
+        maxConcurrent: initialSettings.maxConcurrent || 4,
+        cacheSize: initialSettings.cacheSize || 200,
+        enableCache: initialSettings.enableCache !== false,
+        autoCleanup: initialSettings.autoCleanup !== false
+    });
 
     // 主窗口加载完成后初始化默认路径和检测依赖
     mainWindow.webContents.once('did-finish-load', () => {
@@ -195,6 +215,7 @@ function createSettingsWindow() {
         parent: mainWindow,
         modal: false,
         autoHideMenuBar: true,
+        icon: path.join(__dirname, 'build', 'icon.png'),
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false
@@ -270,7 +291,40 @@ app.whenReady().then(() => {
                 nativeTheme.themeSource = settings.theme;
             }
 
-            // 这里可以添加其他设置的应用逻辑
+            // 应用GPU加速设置（需要重启应用才能生效）
+            if (settings.gpuAcceleration !== undefined) {
+                if (settings.gpuAcceleration) {
+                    app.commandLine.removeSwitch('disable-gpu');
+                    app.commandLine.removeSwitch('disable-gpu-compositing');
+                } else {
+                    app.commandLine.appendSwitch('disable-gpu');
+                    app.commandLine.appendSwitch('disable-gpu-compositing');
+                }
+            }
+
+            // 应用扫描性能设置到PathManager
+            if (pathManager) {
+                pathManager.setCacheConfig({
+                    maxConcurrent: settings.maxConcurrent || 4,
+                    cacheSize: settings.cacheSize || 200,
+                    enableCache: settings.enableCache !== false,
+                    autoCleanup: settings.autoCleanup !== false
+                });
+            }
+
+            // 应用性能设置到渲染进程
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('apply-performance-settings', {
+                    smoothAnimations: settings.smoothAnimations,
+                    animationSpeed: settings.animationSpeed,
+                    gpuAcceleration: settings.gpuAcceleration,
+                    maxConcurrent: settings.maxConcurrent,
+                    cacheSize: settings.cacheSize,
+                    enableCache: settings.enableCache,
+                    autoCleanup: settings.autoCleanup
+                });
+            }
+
             console.log('设置已应用:', settings);
             return true;
         } catch (error) {
@@ -377,6 +431,11 @@ ipcMain.on('scan-directory', async (event, dirPath, scanOptions = {}) => {
         const includeHidden = scanOptions.includeHidden || currentSettings.includeHidden || false;
         const supportedExtensions = scanOptions.supportedExtensions || currentSettings.supportedExtensions || ['.mp4', '.mkv', '.avi', '.mov'];
 
+        // 自定义扫描格式设置
+        const enableCustomFormat = scanOptions.enableCustomScanFormat || currentSettings.enableCustomScanFormat || false;
+        const scanFormatPatterns = scanOptions.scanFormatPatterns || currentSettings.scanFormatPatterns || [];
+        const scanMode = scanOptions.scanMode || currentSettings.scanMode || 'all';
+
         // 构建Python命令参数
         const pythonArgs = [dirPath, `--max-depth=${maxDepth}`];
 
@@ -386,6 +445,12 @@ ipcMain.on('scan-directory', async (event, dirPath, scanOptions = {}) => {
 
         if (supportedExtensions && supportedExtensions.length > 0) {
             pythonArgs.push(`--extensions=${supportedExtensions.join(',')}`);
+        }
+
+        // 添加自定义扫描格式参数
+        if (enableCustomFormat && scanFormatPatterns.length > 0) {
+            pythonArgs.push(`--scan-patterns=${scanFormatPatterns.join('|')}`);
+            pythonArgs.push(`--scan-mode=${scanMode}`);
         }
 
         console.log('Python 信息:', pythonInfo);
@@ -494,6 +559,8 @@ ipcMain.on('play-video', (event, filePath) => {
 // 系统信息相关的IPC处理程序
 ipcMain.handle('get-system-info', async () => {
     try {
+        const memoryUsage = process.memoryUsage();
+
         return {
             platform: os.platform(),
             arch: os.arch(),
@@ -504,11 +571,16 @@ ipcMain.handle('get-system-info', async () => {
             freeMemory: os.freemem(),
             cpuCount: os.cpus().length,
             hostname: os.hostname(),
-            userInfo: os.userInfo()
+            userInfo: os.userInfo(),
+            // 进程内存使用情况
+            memoryUsage: memoryUsage.heapUsed,
+            totalHeapMemory: memoryUsage.heapTotal,
+            externalMemory: memoryUsage.external,
+            rss: memoryUsage.rss
         };
     } catch (error) {
         console.error('获取系统信息失败:', error);
-        return null;
+        return { error: error.message };
     }
 });
 
@@ -527,6 +599,66 @@ ipcMain.handle('get-performance-stats', async () => {
     } catch (error) {
         console.error('获取性能统计失败:', error);
         return null;
+    }
+});
+
+// GPU信息检测
+ipcMain.handle('get-gpu-info', async () => {
+    try {
+        // 获取GPU信息
+        const gpuInfo = await app.getGPUInfo('complete');
+
+        return {
+            gpuProcessCrashCount: app.getGPUFeatureStatus().gpuProcessCrashCount,
+            gpuFeatureStatus: app.getGPUFeatureStatus(),
+            gpuInfo: gpuInfo,
+            hardwareAcceleration: !app.commandLine.hasSwitch('disable-gpu')
+        };
+    } catch (error) {
+        console.error('获取GPU信息失败:', error);
+        return {
+            error: error.message,
+            hardwareAcceleration: !app.commandLine.hasSwitch('disable-gpu')
+        };
+    }
+});
+
+// 测试GPU性能
+ipcMain.handle('test-gpu-performance', async () => {
+    try {
+        const startTime = Date.now();
+
+        // 创建一个临时窗口来测试GPU性能
+        const testWindow = new BrowserWindow({
+            width: 800,
+            height: 600,
+            show: false,
+            webPreferences: {
+                hardwareAcceleration: true
+            }
+        });
+
+        // 加载一个简单的HTML页面进行GPU测试
+        await testWindow.loadURL('data:text/html,<html><body><canvas id="test" width="800" height="600"></canvas><script>const canvas=document.getElementById("test");const ctx=canvas.getContext("2d");for(let i=0;i<1000;i++){ctx.fillStyle=`hsl(${i%360},50%,50%)`;ctx.fillRect(Math.random()*800,Math.random()*600,10,10);}</script></body></html>');
+
+        const endTime = Date.now();
+        const renderTime = endTime - startTime;
+
+        testWindow.destroy();
+
+        return {
+            renderTime,
+            fps: Math.round(1000 / renderTime * 60),
+            gpuAccelerated: !app.commandLine.hasSwitch('disable-gpu')
+        };
+    } catch (error) {
+        console.error('GPU性能测试失败:', error);
+        return {
+            error: error.message,
+            renderTime: -1,
+            fps: 0,
+            gpuAccelerated: false
+        };
     }
 });
 
@@ -833,7 +965,7 @@ ipcMain.handle('open-python-diagnostic', async () => {
                 contextIsolation: false
             },
             title: 'Python诊断工具',
-            icon: path.join(__dirname, 'build', 'icon.ico')
+            icon: path.join(__dirname, 'build', 'icon.png')
         });
 
         diagnosticWindow.loadFile('python-diagnostic.html');
@@ -938,6 +1070,8 @@ ipcMain.handle('clear-path-cache', async () => {
         return { success: false, error: error.message };
     }
 });
+
+
 
 // Python运行时相关的IPC处理程序
 ipcMain.handle('test-python', async () => {

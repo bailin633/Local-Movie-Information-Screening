@@ -61,12 +61,12 @@
                 <div class="setting-group">
                     <h3>文件管理</h3>
                     <div class="setting-item">
-                        <label class="setting-label">
-                            <input type="checkbox" id="organize-by-metadata">
+                        <label class="setting-label disabled" title="该功能正在开发中">
+                            <input type="checkbox" id="organize-by-metadata" disabled>
                             <span class="checkmark"></span>
                             <div class="label-content">
-                                <span class="label-title">按元数据信息整理</span>
-                                <span class="label-description">根据视频的元数据信息自动整理文件</span>
+                                <span class="label-title">从元数据NFO获取信息 (功能开发中)</span>
+                                <span class="label-description">从NFO文件中读取视频元数据信息</span>
                             </div>
                         </label>
                     </div>
@@ -109,54 +109,47 @@
 
                 <div class="setting-group">
                     <h3>支持的文件格式</h3>
+
+                    <!-- 预设扩展名组 -->
+                    <div class="setting-item">
+                        <label>快速选择</label>
+                        <div class="preset-groups">
+                            <button id="preset-common" class="btn btn-secondary btn-small">常用格式</button>
+                            <button id="preset-all" class="btn btn-secondary btn-small">全部格式</button>
+                            <button id="preset-hd" class="btn btn-secondary btn-small">高清格式</button>
+                            <button id="preset-none" class="btn btn-secondary btn-small">清除选择</button>
+                        </div>
+                        <small>快速选择常用的文件格式组合</small>
+                    </div>
+
+                    <!-- 扩展名列表 -->
                     <div class="setting-item">
                         <label>视频文件扩展名</label>
-                        <div class="extension-list">
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-mp4" checked>
-                                <span class="checkmark"></span>
-                                .mp4
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-mkv" checked>
-                                <span class="checkmark"></span>
-                                .mkv
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-avi" checked>
-                                <span class="checkmark"></span>
-                                .avi
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-mov" checked>
-                                <span class="checkmark"></span>
-                                .mov
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-wmv">
-                                <span class="checkmark"></span>
-                                .wmv
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-flv">
-                                <span class="checkmark"></span>
-                                .flv
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-webm">
-                                <span class="checkmark"></span>
-                                .webm
-                            </label>
-                            <label class="extension-item">
-                                <input type="checkbox" id="ext-m4v">
-                                <span class="checkmark"></span>
-                                .m4v
-                            </label>
+                        <div class="extension-list" id="extension-list">
+                            <!-- 动态生成的扩展名列表 -->
                         </div>
+
+                        <!-- 自定义扩展名添加 -->
                         <div class="custom-extension">
-                            <input type="text" id="custom-extensions" placeholder="自定义扩展名 (用逗号分隔)">
+                            <input type="text" id="custom-extensions" placeholder="添加扩展名，如：.ts, .rmvb, .3gp">
                             <button id="add-custom-ext" class="btn btn-secondary btn-small">添加</button>
                         </div>
+
+                        <!-- 扩展名统计 -->
+                        <div class="extension-stats" id="extension-stats">
+                            <small>已选择 <span id="selected-count">0</span> 种格式</small>
+                        </div>
+                    </div>
+
+                    <!-- 扩展名验证和管理 -->
+                    <div class="setting-item">
+                        <label>扩展名管理</label>
+                        <div class="extension-management">
+                            <div class="custom-extensions-list" id="custom-extensions-list">
+                                <!-- 动态生成的自定义扩展名列表 -->
+                            </div>
+                        </div>
+                        <small>管理您添加的自定义扩展名</small>
                     </div>
                 </div>
 
@@ -192,6 +185,51 @@
                                 <span class="label-description">扫描符号链接指向的文件和目录</span>
                             </div>
                         </label>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <h3>自定义扫描格式</h3>
+                    <div class="setting-item">
+                        <label class="setting-label">
+                            <input type="checkbox" id="enable-custom-scan-format">
+                            <span class="checkmark"></span>
+                            <div class="label-content">
+                                <span class="label-title">启用自定义扫描格式</span>
+                                <span class="label-description">使用自定义的文件名模式进行扫描</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="setting-item custom-format-container" id="custom-format-container" style="display: none;">
+                        <label for="scan-format-patterns">扫描格式模式</label>
+                        <div class="format-patterns">
+                            <div class="pattern-list" id="pattern-list">
+                                <!-- 动态生成的模式列表 -->
+                            </div>
+                            <div class="add-pattern">
+                                <input type="text" id="new-pattern" placeholder="输入文件名模式，如：*[1080p]*、*4K*、*HEVC*">
+                                <button id="add-pattern-btn" class="btn btn-secondary btn-small">添加模式</button>
+                            </div>
+                        </div>
+                        <small class="format-help">
+                            <strong>支持的通配符：</strong><br>
+                            • <code>*</code> - 匹配任意字符<br>
+                            • <code>?</code> - 匹配单个字符<br>
+                            • <code>[1080p]</code> - 匹配包含"1080p"的文件<br>
+                            • <code>*.mkv</code> - 匹配所有mkv文件<br>
+                            <strong>示例：</strong> <code>*[4K]*HEVC*.mkv</code> 匹配包含"4K"和"HEVC"的mkv文件
+                        </small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="scan-mode">扫描模式</label>
+                        <select id="scan-mode" class="select-input">
+                            <option value="all">扫描所有文件（默认）</option>
+                            <option value="pattern-only">仅扫描匹配模式的文件</option>
+                            <option value="pattern-priority">优先扫描匹配模式的文件</option>
+                        </select>
+                        <small>选择如何处理自定义扫描格式</small>
                     </div>
                 </div>
 
@@ -550,7 +588,7 @@
                         </div>
                         <div class="app-details">
                             <h3>本地影视资源分辨率筛查工具</h3>
-                            <p class="app-version">版本 <span id="app-version">1.0.1</span></p>
+                            <p class="app-version">版本 <span id="app-version">1.0.3</span></p>
                             <p class="app-description">
                                 一款专业的本地视频文件管理和分析工具，支持多种视频格式的扫描、
                                 分析和管理，帮助您更好地整理和查看视频资源。

@@ -290,6 +290,33 @@ body {
     line-height: 1.3;
 }
 
+/* 禁用状态样式 */
+.setting-label.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.setting-label.disabled:hover {
+    background: transparent;
+    transform: none;
+    padding: 8px 0;
+    margin: 0;
+}
+
+.setting-label.disabled .checkmark {
+    background: #f5f5f5;
+    border-color: #e0e0e0;
+}
+
+.setting-label.disabled .label-title {
+    color: #999;
+}
+
+.setting-label.disabled .label-description {
+    color: #bbb;
+}
+
 /* 按钮样式 */
 .btn {
     display: inline-flex;
@@ -532,6 +559,281 @@ input[type="range"]::-moz-range-thumb {
 
 .custom-extension input {
     flex: 1;
+    padding: 8px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #343a40;
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.custom-extension input:focus {
+    border-color: rgba(74, 144, 226, 0.5);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+/* 预设扩展名组样式 */
+.preset-groups {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.preset-groups .btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.preset-groups .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 扩展名项增强样式 */
+.extension-item {
+    position: relative;
+    justify-content: space-between;
+}
+
+.extension-item.custom {
+    border-color: rgba(74, 144, 226, 0.3);
+    background: rgba(74, 144, 226, 0.1);
+}
+
+.extension-item.custom:hover {
+    border-color: rgba(74, 144, 226, 0.5);
+    background: rgba(74, 144, 226, 0.2);
+}
+
+.extension-item .extension-name {
+    flex: 1;
+    font-weight: 500;
+}
+
+.extension-item .extension-remove {
+    background: rgba(220, 53, 69, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+}
+
+.extension-item.custom:hover .extension-remove {
+    display: flex;
+}
+
+.extension-item .extension-remove:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+}
+
+/* 扩展名统计 */
+.extension-stats {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.extension-stats small {
+    color: rgba(0, 0, 0, 0.6);
+    font-size: 12px;
+}
+
+.extension-stats #selected-count {
+    font-weight: bold;
+    color: rgba(74, 144, 226, 1);
+}
+
+/* 扩展名管理 */
+.extension-management {
+    margin-top: 10px;
+}
+
+.custom-extensions-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 40px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.custom-extension-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    background: rgba(74, 144, 226, 0.2);
+    border: 1px solid rgba(74, 144, 226, 0.3);
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+    color: #343a40;
+    transition: all 0.2s ease;
+}
+
+.custom-extension-tag:hover {
+    background: rgba(74, 144, 226, 0.3);
+    border-color: rgba(74, 144, 226, 0.5);
+}
+
+.custom-extension-tag .remove-tag {
+    background: rgba(220, 53, 69, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.custom-extension-tag .remove-tag:hover {
+    background: rgba(220, 53, 69, 1);
+    transform: scale(1.1);
+}
+
+.empty-extensions {
+    color: rgba(0, 0, 0, 0.4);
+    font-style: italic;
+    text-align: center;
+    padding: 20px;
+    font-size: 14px;
+}
+
+/* 自定义扫描格式样式 */
+.custom-format-container {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.format-patterns {
+    margin-bottom: 15px;
+}
+
+.pattern-list {
+    margin-bottom: 15px;
+    min-height: 40px;
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.pattern-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.pattern-item:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.pattern-item:last-child {
+    margin-bottom: 0;
+}
+
+.pattern-text {
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+    color: #e8e8e8;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px 8px;
+    border-radius: 4px;
+    flex: 1;
+    margin-right: 10px;
+}
+
+.pattern-remove {
+    background: #ff6b6b;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.3s ease;
+}
+
+.pattern-remove:hover {
+    background: #ff5252;
+    transform: scale(1.05);
+}
+
+.add-pattern {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.add-pattern input {
+    flex: 1;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.format-help {
+    display: block;
+    margin-top: 15px;
+    padding: 12px;
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 4px solid #3498db;
+    border-radius: 0 6px 6px 0;
+    color: #bbb;
+    line-height: 1.5;
+}
+
+.format-help code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: #e8e8e8;
+}
+
+.format-help strong {
+    color: #3498db;
+    font-weight: 600;
+}
+
+.empty-patterns {
+    text-align: center;
+    color: #888;
+    font-style: italic;
+    padding: 20px;
 }
 
 /* 主题选择器样式 */

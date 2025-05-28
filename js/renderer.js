@@ -331,12 +331,32 @@ document.addEventListener('DOMContentLoaded', () => {
     ipcRenderer.on('file-system-changed', (event, data) => {
         console.log('检测到文件系统变化:', data);
 
-        // 如果当前有扫描的目录，可以选择重新扫描
+        // 如果当前有扫描的目录且检测到视频文件变化，自动重新扫描
         if (pathInput.value && data.isVideo) {
-            console.log('检测到视频文件变化，可能需要重新扫描');
-            // 这里可以添加自动重新扫描的逻辑
-            // 或者显示一个提示让用户选择是否重新扫描
+            console.log('检测到视频文件变化，开始自动重新扫描');
+
+            // 显示自动刷新提示
+            showAutoRefreshNotification(data);
+
+            // 延迟重新扫描，避免频繁操作
+            setTimeout(() => {
+                handlePathSelection(pathInput.value);
+            }, 1000);
         }
+    });
+
+    // 监听性能设置应用
+    ipcRenderer.on('apply-performance-settings', (event, settings) => {
+        applyPerformanceSettings(settings);
+    });
+
+    // 初始化时应用性能设置
+    ipcRenderer.invoke('get-settings').then(settings => {
+        if (settings) {
+            applyPerformanceSettings(settings);
+        }
+    }).catch(error => {
+        console.error('获取初始设置失败:', error);
     });
 });
 
@@ -569,3 +589,216 @@ function closeDependencyInfo() {
         document.body.style.paddingTop = '0';
     }
 }
+
+// 显示自动刷新通知
+function showAutoRefreshNotification(data) {
+    // 移除现有的通知
+    const existingNotification = document.getElementById('auto-refresh-notification');
+    if (existingNotification) {
+        existingNotification.remove();
+    }
+
+    // 创建通知元素
+    const notification = document.createElement('div');
+    notification.id = 'auto-refresh-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        z-index: 1000;
+        font-size: 14px;
+        max-width: 300px;
+        animation: slideInRight 0.3s ease-out;
+    `;
+
+    const eventTypeText = data.eventType === 'rename' ? '重命名' :
+                         data.eventType === 'change' ? '修改' : '变化';
+
+    notification.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 18px;">🔄</span>
+            <div>
+                <div style="font-weight: bold;">检测到文件${eventTypeText}</div>
+                <div style="font-size: 12px; opacity: 0.9;">${data.filename}</div>
+                <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">正在自动刷新列表...</div>
+            </div>
+        </div>
+    `;
+
+    // 添加CSS动画
+    if (!document.getElementById('auto-refresh-animation-style')) {
+        const style = document.createElement('style');
+        style.id = 'auto-refresh-animation-style';
+        style.textContent = `
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    document.body.appendChild(notification);
+
+    // 3秒后自动消失
+    setTimeout(() => {
+        if (notification && notification.parentNode) {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 3000);
+}
+
+/**
+ * 应用性能设置
+ */
+function applyPerformanceSettings(settings) {
+    console.log('应用性能设置:', settings);
+
+    // 应用动画设置
+    if (settings.smoothAnimations !== undefined) {
+        const root = document.documentElement;
+        if (settings.smoothAnimations) {
+            root.style.setProperty('--animation-enabled', '1');
+            root.classList.remove('no-animations');
+        } else {
+            root.style.setProperty('--animation-enabled', '0');
+            root.classList.add('no-animations');
+        }
+    }
+
+    // 应用动画速度
+    if (settings.animationSpeed !== undefined) {
+        const root = document.documentElement;
+        const speed = Math.max(0.1, Math.min(3.0, settings.animationSpeed));
+        root.style.setProperty('--animation-speed', speed.toString());
+
+        // 更新所有动画持续时间
+        updateAnimationDurations(speed);
+    }
+
+    // 应用GPU加速设置
+    if (settings.gpuAcceleration !== undefined) {
+        const root = document.documentElement;
+        if (settings.gpuAcceleration) {
+            root.style.setProperty('--gpu-acceleration', 'auto');
+            root.classList.remove('no-gpu');
+        } else {
+            root.style.setProperty('--gpu-acceleration', 'none');
+            root.classList.add('no-gpu');
+        }
+
+        // 更新GPU相关的CSS属性
+        updateGPUAcceleration(settings.gpuAcceleration);
+    }
+}
+
+/**
+ * 更新动画持续时间
+ */
+function updateAnimationDurations(speed) {
+    const baseTransitionDuration = 0.3; // 基础动画时长（秒）
+    const adjustedDuration = baseTransitionDuration / speed;
+
+    const root = document.documentElement;
+    root.style.setProperty('--transition-duration', `${adjustedDuration}s`);
+    root.style.setProperty('--transition-duration-fast', `${adjustedDuration * 0.5}s`);
+    root.style.setProperty('--transition-duration-slow', `${adjustedDuration * 1.5}s`);
+}
+
+/**
+ * 更新GPU加速设置
+ */
+function updateGPUAcceleration(enabled) {
+    const elementsToUpdate = [
+        '.video-overview',
+        '.video-info',
+        '.resizer',
+        '#video-table',
+        '.loading-container'
+    ];
+
+    elementsToUpdate.forEach(selector => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(element => {
+            if (enabled) {
+                element.style.transform = 'translateZ(0)'; // 强制GPU层
+                element.style.willChange = 'transform, opacity';
+            } else {
+                element.style.transform = '';
+                element.style.willChange = '';
+            }
+        });
+    });
+}
+
+/**
+ * 检测GPU加速状态
+ */
+async function checkGPUAcceleration() {
+    try {
+        const gpuInfo = await ipcRenderer.invoke('get-gpu-info');
+        console.log('GPU信息:', gpuInfo);
+
+        return {
+            available: !gpuInfo.error,
+            enabled: gpuInfo.hardwareAcceleration,
+            info: gpuInfo
+        };
+    } catch (error) {
+        console.error('检测GPU加速失败:', error);
+        return {
+            available: false,
+            enabled: false,
+            error: error.message
+        };
+    }
+}
+
+/**
+ * 测试GPU性能
+ */
+async function testGPUPerformance() {
+    try {
+        const result = await ipcRenderer.invoke('test-gpu-performance');
+        console.log('GPU性能测试结果:', result);
+        return result;
+    } catch (error) {
+        console.error('GPU性能测试失败:', error);
+        return {
+            error: error.message,
+            renderTime: -1,
+            fps: 0
+        };
+    }
+}
+
+// 全局函数，供其他模块调用
+window.applyPerformanceSettings = applyPerformanceSettings;
+window.checkGPUAcceleration = checkGPUAcceleration;
+window.testGPUPerformance = testGPUPerformance;
