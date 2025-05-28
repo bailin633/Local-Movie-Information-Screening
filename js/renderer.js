@@ -28,6 +28,18 @@ document.addEventListener('DOMContentLoaded', () => {
         ipcRenderer.send('open-settings-window');
     });
 
+    document.getElementById('python-diagnostic-button').addEventListener('click', async () => {
+        try {
+            const result = await ipcRenderer.invoke('open-python-diagnostic');
+            if (!result) {
+                alert('无法打开Python诊断工具');
+            }
+        } catch (error) {
+            console.error('打开Python诊断工具失败:', error);
+            alert('打开Python诊断工具失败: ' + error.message);
+        }
+    });
+
     function filterVideosByResolution(resolution) {
         const resolutionRanges = {
             '全部': { min: 0, max: Infinity },
@@ -300,6 +312,11 @@ document.addEventListener('DOMContentLoaded', () => {
         displayVideos(results);
     });
 
+    // 监听Python依赖检测结果
+    ipcRenderer.on('python-dependencies-check', (event, data) => {
+        handleDependencyCheckResult(data);
+    });
+
     // 监听来自设置的默认路径设置
     ipcRenderer.on('set-default-path', (event, defaultPath) => {
         console.log('收到默认路径设置:', defaultPath);
@@ -377,4 +394,178 @@ function displayVideoInfo(video) {
     selectedFilePath = video.path;
     selectedVideo = video;
     openFilePathButton.style.display = 'inline-block';
+}
+
+// 处理Python依赖检测结果
+function handleDependencyCheckResult(data) {
+    console.log('收到Python依赖检测结果:', data);
+
+    if (data.type === 'missing-essential') {
+        // 显示必需库缺失的警告
+        showDependencyWarning(
+            '⚠️ 缺少必需的Python库',
+            `检测到 ${data.result.missingEssential} 个必需的Python库未安装，这可能导致扫描功能无法正常工作。`,
+            '立即安装',
+            () => openPythonDiagnostic()
+        );
+    } else if (data.type === 'missing-optional') {
+        // 显示可选库缺失的提示
+        showDependencyInfo(
+            'ℹ️ 可选Python库未安装',
+            `检测到 ${data.result.missingOptional} 个可选的Python库未安装，建议安装以获得更好的功能体验。`,
+            '查看详情',
+            () => openPythonDiagnostic()
+        );
+    } else if (data.type === 'all-installed') {
+        console.log('所有Python依赖库都已安装');
+    }
+}
+
+// 显示依赖警告（必需库缺失）
+function showDependencyWarning(title, message, buttonText, buttonAction) {
+    // 创建警告横幅
+    const warningBanner = document.createElement('div');
+    warningBanner.id = 'dependency-warning';
+    warningBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #f39c12;
+        color: white;
+        padding: 15px;
+        text-align: center;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        font-weight: bold;
+    `;
+
+    warningBanner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+            <div style="flex: 1;">
+                <span style="font-size: 16px;">${title}</span>
+                <br>
+                <span style="font-size: 14px; font-weight: normal;">${message}</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="openPythonDiagnostic()" style="
+                    background-color: #e67e22;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: bold;
+                ">${buttonText}</button>
+                <button onclick="closeDependencyWarning()" style="
+                    background-color: transparent;
+                    color: white;
+                    border: 1px solid white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                ">关闭</button>
+            </div>
+        </div>
+    `;
+
+    // 移除现有的警告（如果有）
+    const existingWarning = document.getElementById('dependency-warning');
+    if (existingWarning) {
+        existingWarning.remove();
+    }
+
+    document.body.insertBefore(warningBanner, document.body.firstChild);
+
+    // 调整主内容的上边距
+    document.body.style.paddingTop = '80px';
+}
+
+// 显示依赖信息（可选库缺失）
+function showDependencyInfo(title, message, buttonText, buttonAction) {
+    // 创建信息横幅
+    const infoBanner = document.createElement('div');
+    infoBanner.id = 'dependency-info';
+    infoBanner.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background-color: #3498db;
+        color: white;
+        padding: 12px;
+        text-align: center;
+        z-index: 1000;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    `;
+
+    infoBanner.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+            <div style="flex: 1;">
+                <span style="font-size: 14px;">${title}</span>
+                <span style="font-size: 13px; margin-left: 10px;">${message}</span>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="openPythonDiagnostic()" style="
+                    background-color: #2980b9;
+                    color: white;
+                    border: none;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 12px;
+                ">${buttonText}</button>
+                <button onclick="closeDependencyInfo()" style="
+                    background-color: transparent;
+                    color: white;
+                    border: 1px solid white;
+                    padding: 6px 12px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 12px;
+                ">关闭</button>
+            </div>
+        </div>
+    `;
+
+    // 移除现有的信息（如果有）
+    const existingInfo = document.getElementById('dependency-info');
+    if (existingInfo) {
+        existingInfo.remove();
+    }
+
+    document.body.insertBefore(infoBanner, document.body.firstChild);
+
+    // 调整主内容的上边距
+    document.body.style.paddingTop = '60px';
+}
+
+// 打开Python诊断工具
+function openPythonDiagnostic() {
+    ipcRenderer.invoke('open-python-diagnostic').then(result => {
+        if (!result) {
+            alert('无法打开Python诊断工具');
+        }
+    }).catch(error => {
+        console.error('打开Python诊断工具失败:', error);
+        alert('打开Python诊断工具失败: ' + error.message);
+    });
+}
+
+// 关闭依赖警告
+function closeDependencyWarning() {
+    const warning = document.getElementById('dependency-warning');
+    if (warning) {
+        warning.remove();
+        document.body.style.paddingTop = '0';
+    }
+}
+
+// 关闭依赖信息
+function closeDependencyInfo() {
+    const info = document.getElementById('dependency-info');
+    if (info) {
+        info.remove();
+        document.body.style.paddingTop = '0';
+    }
 }

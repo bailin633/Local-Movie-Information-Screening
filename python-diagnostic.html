@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Python诊断工具</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+
+        .section h2 {
+            color: #34495e;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #2980b9;
+        }
+
+        .button:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #e74c3c;
+            font-weight: bold;
+        }
+
+        .warning {
+            color: #f39c12;
+            font-weight: bold;
+        }
+
+        .info {
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .output {
+            background-color: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .path-input {
+            width: 70%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .flex-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🐍 Python环境诊断工具</h1>
+
+        <div class="section">
+            <h2>当前Python状态</h2>
+            <div id="python-status">
+                <div class="status-item">
+                    <span>Python可用性:</span>
+                    <span id="python-available" class="loading"></span>
+                </div>
+                <div class="status-item">
+                    <span>Python路径:</span>
+                    <span id="python-path">检测中...</span>
+                </div>
+                <div class="status-item">
+                    <span>Python版本:</span>
+                    <span id="python-version">检测中...</span>
+                </div>
+                <div class="status-item">
+                    <span>是否为打包应用:</span>
+                    <span id="is-packaged">检测中...</span>
+                </div>
+                <div class="status-item">
+                    <span>Python脚本路径:</span>
+                    <span id="script-path">检测中...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>诊断操作</h2>
+            <button class="button" onclick="runDiagnosis()">🔍 运行完整诊断</button>
+            <button class="button" onclick="testPython()">🧪 测试Python</button>
+            <button class="button" onclick="checkScriptPath()">📄 检查脚本路径</button>
+            <button class="button" onclick="checkDependencies()">📦 检查依赖库</button>
+            <button class="button" onclick="reinitializePython()">🔄 重新初始化Python</button>
+            <button class="button" onclick="refreshStatus()">📊 刷新状态</button>
+        </div>
+
+        <div class="section">
+            <h2>Python依赖库管理</h2>
+            <div id="dependency-status">
+                <p>点击"检查依赖库"查看当前状态...</p>
+            </div>
+            <div id="dependency-actions" style="display: none;">
+                <button class="button" onclick="installAllDependencies()">📦 一键安装所有缺失库</button>
+                <button class="button" onclick="showInstallationGuide()">📖 查看手动安装指南</button>
+            </div>
+            <div id="installation-progress" style="display: none;">
+                <h3>安装进度</h3>
+                <div class="progress-bar">
+                    <div id="progress-fill" style="width: 0%; background-color: #3498db; height: 20px; border-radius: 10px; transition: width 0.3s;"></div>
+                </div>
+                <div id="progress-text">准备安装...</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>手动设置Python路径</h2>
+            <div class="flex-row">
+                <input type="text" id="custom-python-path" class="path-input"
+                       placeholder="例如: C:\Python39\python.exe">
+                <button class="button" onclick="setCustomPythonPath()">设置路径</button>
+                <button class="button" onclick="browsePythonPath()">浏览...</button>
+            </div>
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                如果自动检测失败，您可以手动指定Python可执行文件的完整路径
+            </p>
+        </div>
+
+        <div class="section">
+            <h2>诊断输出</h2>
+            <div id="diagnostic-output" class="output">点击"运行完整诊断"查看详细信息...</div>
+        </div>
+
+        <div class="section">
+            <h2>常见问题解决方案</h2>
+            <div style="line-height: 1.6;">
+                <p><strong>问题1: Python运行时不可用</strong></p>
+                <ul>
+                    <li>确认已安装Python 3.7或更高版本</li>
+                    <li>检查Python是否添加到系统PATH环境变量</li>
+                    <li>尝试重启应用程序</li>
+                    <li>使用上方的手动设置功能指定Python路径</li>
+                </ul>
+
+                <p><strong>问题2: 扫描目录失败</strong></p>
+                <ul>
+                    <li>确认Python可以正常运行</li>
+                    <li>检查目录权限</li>
+                    <li>尝试减少扫描深度</li>
+                    <li>查看详细错误信息</li>
+                </ul>
+
+                <p><strong>推荐的Python安装方式:</strong></p>
+                <ul>
+                    <li>从 <a href="https://www.python.org/downloads/" target="_blank">python.org</a> 下载官方安装包</li>
+                    <li>安装时勾选"Add Python to PATH"选项</li>
+                    <li>选择"Install for all users"（如果有管理员权限）</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        // 页面加载时刷新状态
+        window.addEventListener('DOMContentLoaded', () => {
+            refreshStatus();
+        });
+
+        async function refreshStatus() {
+            try {
+                const result = await ipcRenderer.invoke('get-python-info');
+                updatePythonStatus(result);
+
+                // 同时获取脚本路径信息
+                const scriptInfo = await ipcRenderer.invoke('get-python-script-info');
+                updateScriptPathStatus(scriptInfo);
+            } catch (error) {
+                console.error('获取Python信息失败:', error);
+                updatePythonStatus({ available: false, error: error.message });
+            }
+        }
+
+        function updatePythonStatus(info) {
+            const availableEl = document.getElementById('python-available');
+            const pathEl = document.getElementById('python-path');
+            const versionEl = document.getElementById('python-version');
+            const packagedEl = document.getElementById('is-packaged');
+
+            if (info.available) {
+                availableEl.textContent = '✅ 可用';
+                availableEl.className = 'success';
+                pathEl.textContent = info.path || '未知';
+                versionEl.textContent = info.version || '未知';
+            } else {
+                availableEl.textContent = '❌ 不可用';
+                availableEl.className = 'error';
+                pathEl.textContent = info.error || '未检测到';
+                versionEl.textContent = '无法获取';
+            }
+
+            packagedEl.textContent = info.isPackaged ? '是' : '否';
+        }
+
+        function updateScriptPathStatus(scriptInfo) {
+            const scriptPathEl = document.getElementById('script-path');
+
+            if (scriptInfo.success && scriptInfo.foundScriptPath) {
+                scriptPathEl.textContent = scriptInfo.foundScriptPath;
+                scriptPathEl.className = 'success';
+            } else {
+                scriptPathEl.textContent = '❌ 未找到';
+                scriptPathEl.className = 'error';
+            }
+        }
+
+        async function runDiagnosis() {
+            const outputEl = document.getElementById('diagnostic-output');
+            outputEl.textContent = '正在运行诊断，请稍候...\n';
+
+            try {
+                const result = await ipcRenderer.invoke('diagnose-python');
+                if (result.success) {
+                    outputEl.textContent = result.output;
+                } else {
+                    outputEl.textContent = `诊断失败: ${result.error}`;
+                }
+            } catch (error) {
+                outputEl.textContent = `诊断过程中发生错误: ${error.message}`;
+            }
+        }
+
+        async function testPython() {
+            const outputEl = document.getElementById('diagnostic-output');
+            outputEl.textContent = '正在测试Python...\n';
+
+            try {
+                const result = await ipcRenderer.invoke('test-python');
+                outputEl.textContent = `Python测试结果:\n${JSON.stringify(result, null, 2)}`;
+
+                // 更新状态
+                await refreshStatus();
+            } catch (error) {
+                outputEl.textContent = `Python测试失败: ${error.message}`;
+            }
+        }
+
+        async function checkScriptPath() {
+            const outputEl = document.getElementById('diagnostic-output');
+            outputEl.textContent = '正在检查Python脚本路径...\n';
+
+            try {
+                const result = await ipcRenderer.invoke('get-python-script-info');
+
+                let output = 'Python脚本路径检查结果:\n\n';
+                output += `应用程序已打包: ${result.isPackaged}\n`;
+                output += `应用程序路径: ${result.execPath}\n`;
+                output += `资源路径: ${result.resourcesPath}\n`;
+                output += `__dirname: ${result.dirname}\n\n`;
+
+                if (result.foundScriptPath) {
+                    output += `✅ 找到Python脚本: ${result.foundScriptPath}\n\n`;
+                } else {
+                    output += `❌ 未找到Python脚本\n\n`;
+                }
+
+                output += '所有尝试的路径:\n';
+                result.allPaths.forEach((pathInfo, index) => {
+                    const status = pathInfo.exists ? '✅' : '❌';
+                    output += `${index + 1}. ${status} ${pathInfo.path}\n`;
+                });
+
+                outputEl.textContent = output;
+
+                // 更新状态
+                await refreshStatus();
+            } catch (error) {
+                outputEl.textContent = `检查脚本路径失败: ${error.message}`;
+            }
+        }
+
+        async function reinitializePython() {
+            const outputEl = document.getElementById('diagnostic-output');
+            outputEl.textContent = '正在重新初始化Python管理器...\n';
+
+            try {
+                const result = await ipcRenderer.invoke('reinitialize-python');
+                if (result.success) {
+                    outputEl.textContent = `重新初始化成功:\n${JSON.stringify(result.info, null, 2)}`;
+                    await refreshStatus();
+                } else {
+                    outputEl.textContent = `重新初始化失败: ${result.error}`;
+                }
+            } catch (error) {
+                outputEl.textContent = `重新初始化过程中发生错误: ${error.message}`;
+            }
+        }
+
+        async function setCustomPythonPath() {
+            const pathInput = document.getElementById('custom-python-path');
+            const customPath = pathInput.value.trim();
+
+            if (!customPath) {
+                alert('请输入Python路径');
+                return;
+            }
+
+            const outputEl = document.getElementById('diagnostic-output');
+            outputEl.textContent = `正在设置自定义Python路径: ${customPath}\n`;
+
+            try {
+                const result = await ipcRenderer.invoke('set-python-path', customPath);
+                if (result.success) {
+                    outputEl.textContent += `设置成功！\n`;
+                    await refreshStatus();
+                } else {
+                    outputEl.textContent += `设置失败: ${result.error}\n`;
+                }
+            } catch (error) {
+                outputEl.textContent += `设置过程中发生错误: ${error.message}\n`;
+            }
+        }
+
+        async function browsePythonPath() {
+            try {
+                const result = await ipcRenderer.invoke('show-open-dialog', {
+                    title: '选择Python可执行文件',
+                    filters: [
+                        { name: 'Python可执行文件', extensions: ['exe'] },
+                        { name: '所有文件', extensions: ['*'] }
+                    ],
+                    properties: ['openFile']
+                });
+
+                if (!result.canceled && result.filePaths.length > 0) {
+                    document.getElementById('custom-python-path').value = result.filePaths[0];
+                }
+            } catch (error) {
+                console.error('浏览文件失败:', error);
+                alert('浏览文件失败: ' + error.message);
+            }
+        }
+
+        // Python依赖库管理函数
+        async function checkDependencies() {
+            const outputEl = document.getElementById('diagnostic-output');
+            const statusEl = document.getElementById('dependency-status');
+            const actionsEl = document.getElementById('dependency-actions');
+
+            outputEl.textContent = '正在检查Python依赖库...\n';
+            statusEl.innerHTML = '<p>检查中...</p>';
+
+            try {
+                const result = await ipcRenderer.invoke('check-python-dependencies');
+
+                if (result.success) {
+                    let statusHtml = '<h3>依赖库状态</h3>';
+
+                    result.packages.forEach(pkg => {
+                        const status = pkg.installed ? '✅' : '❌';
+                        const essential = pkg.essential ? '(必需)' : '(可选)';
+                        statusHtml += `<div class="status-item">
+                            <span>${status} ${pkg.name} ${essential}</span>
+                            <span>${pkg.description}</span>
+                        </div>`;
+                    });
+
+                    if (result.missingEssential > 0 || result.missingOptional > 0) {
+                        statusHtml += `<p class="warning">缺失库: ${result.missingEssential} 个必需, ${result.missingOptional} 个可选</p>`;
+                        actionsEl.style.display = 'block';
+                    } else {
+                        statusHtml += '<p class="success">所有依赖库都已安装！</p>';
+                        actionsEl.style.display = 'none';
+                    }
+
+                    statusEl.innerHTML = statusHtml;
+                    outputEl.textContent = `依赖库检查完成:\n${JSON.stringify(result, null, 2)}`;
+                } else {
+                    statusEl.innerHTML = `<p class="error">检查失败: ${result.error}</p>`;
+                    outputEl.textContent = `依赖库检查失败: ${result.error}`;
+                }
+            } catch (error) {
+                statusEl.innerHTML = `<p class="error">检查过程中发生错误: ${error.message}</p>`;
+                outputEl.textContent = `依赖库检查错误: ${error.message}`;
+            }
+        }
+
+        async function installAllDependencies() {
+            const progressEl = document.getElementById('installation-progress');
+            const progressFill = document.getElementById('progress-fill');
+            const progressText = document.getElementById('progress-text');
+            const outputEl = document.getElementById('diagnostic-output');
+
+            progressEl.style.display = 'block';
+            progressFill.style.width = '0%';
+            progressText.textContent = '开始安装...';
+
+            // 监听安装进度
+            ipcRenderer.on('install-progress', (event, progress) => {
+                if (progress.type === 'status') {
+                    progressText.textContent = progress.message;
+                    const percent = (progress.current / progress.total) * 100;
+                    progressFill.style.width = percent + '%';
+                } else if (progress.type === 'stdout') {
+                    outputEl.textContent += progress.data;
+                } else if (progress.type === 'stderr') {
+                    outputEl.textContent += `错误: ${progress.data}`;
+                }
+            });
+
+            try {
+                const result = await ipcRenderer.invoke('install-all-python-packages');
+
+                if (result.success) {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = '安装完成！';
+                    outputEl.textContent += `\n安装结果: ${result.message}\n`;
+
+                    // 重新检查依赖
+                    setTimeout(() => {
+                        checkDependencies();
+                        progressEl.style.display = 'none';
+                    }, 2000);
+                } else {
+                    progressText.textContent = '安装失败';
+                    outputEl.textContent += `\n安装失败: ${result.error}\n`;
+                }
+            } catch (error) {
+                progressText.textContent = '安装过程中发生错误';
+                outputEl.textContent += `\n安装错误: ${error.message}\n`;
+            }
+
+            // 清理事件监听器
+            ipcRenderer.removeAllListeners('install-progress');
+        }
+
+        async function showInstallationGuide() {
+            const outputEl = document.getElementById('diagnostic-output');
+
+            try {
+                const result = await ipcRenderer.invoke('get-installation-suggestions');
+
+                if (result.success) {
+                    const suggestions = result.suggestions;
+                    let guide = '=== Python依赖库手动安装指南 ===\n\n';
+
+                    guide += '安装前准备:\n';
+                    suggestions.beforeInstall.forEach((tip, index) => {
+                        guide += `${index + 1}. ${tip}\n`;
+                    });
+
+                    guide += '\n手动安装命令:\n';
+                    suggestions.manualInstall.forEach((cmd, index) => {
+                        guide += `${index + 1}. ${cmd}\n`;
+                    });
+
+                    guide += '\n故障排除:\n';
+                    suggestions.troubleshooting.forEach((tip, index) => {
+                        guide += `${index + 1}. ${tip}\n`;
+                    });
+
+                    outputEl.textContent = guide;
+                } else {
+                    outputEl.textContent = `获取安装指南失败: ${result.error}`;
+                }
+            } catch (error) {
+                outputEl.textContent = `获取安装指南错误: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html>

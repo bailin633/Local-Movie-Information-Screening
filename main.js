@@ -32,6 +32,9 @@ const { initializeSearch, searchVideos } = require('./js/find.js');
 const PathManager = require('./js/pathManager.js');
 const FileManager = require('./js/fileManager.js');
 const FileWatcher = require('./js/fileWatcher.js');
+const PythonManager = require('./js/pythonManager.js');
+const ScriptManager = require('./js/scriptManager.js');
+const PythonDependencyManager = require('./js/pythonDependencyManager.js');
 
 require('iconv-lite');
 require('dotenv').config();
@@ -44,6 +47,9 @@ let allVideos = [];
 const pathManager = new PathManager();
 const fileManager = new FileManager();
 const fileWatcher = new FileWatcher();
+const pythonManager = new PythonManager();
+const scriptManager = new ScriptManager();
+const dependencyManager = new PythonDependencyManager(pythonManager);
 
 // 设置文件路径
 const settingsPath = path.join(os.homedir(), '.video-scanner-settings.json');
@@ -133,9 +139,44 @@ function createMainWindow() {
     // 设置pathManager的主窗口引用
     pathManager.setMainWindow(mainWindow);
 
-    // 主窗口加载完成后初始化默认路径
+    // 主窗口加载完成后初始化默认路径和检测依赖
     mainWindow.webContents.once('did-finish-load', () => {
         pathManager.initializeOnStartup();
+
+        // 延迟检测Python依赖库
+        setTimeout(async () => {
+            try {
+                console.log('开始检测Python依赖库...');
+                const dependencyResult = await dependencyManager.checkAllDependencies();
+
+                if (dependencyResult.success) {
+                    if (dependencyResult.missingEssential > 0) {
+                        console.log(`检测到 ${dependencyResult.missingEssential} 个必需库缺失`);
+                        // 发送依赖检测结果到渲染进程
+                        mainWindow.webContents.send('python-dependencies-check', {
+                            type: 'missing-essential',
+                            result: dependencyResult
+                        });
+                    } else if (dependencyResult.missingOptional > 0) {
+                        console.log(`检测到 ${dependencyResult.missingOptional} 个可选库缺失`);
+                        mainWindow.webContents.send('python-dependencies-check', {
+                            type: 'missing-optional',
+                            result: dependencyResult
+                        });
+                    } else {
+                        console.log('所有Python依赖库都已安装');
+                        mainWindow.webContents.send('python-dependencies-check', {
+                            type: 'all-installed',
+                            result: dependencyResult
+                        });
+                    }
+                } else {
+                    console.log('Python依赖检测失败:', dependencyResult.error);
+                }
+            } catch (error) {
+                console.error('启动时依赖检测失败:', error);
+            }
+        }, 3000); // 延迟3秒执行，确保界面已加载
     });
 
     return mainWindow;
@@ -297,79 +338,85 @@ ipcMain.on('open-file-dialog', (event) => {
     });
 });
 
-ipcMain.on('scan-directory', (event, dirPath, scanOptions = {}) => {
-    const pythonScriptPath = path.join(__dirname, 'py', 'video_info.py');
-
-    console.log('Python 脚本路径:', pythonScriptPath);
-    console.log('要扫描的目录:', dirPath);
+ipcMain.on('scan-directory', async (event, dirPath, scanOptions = {}) => {
+    console.log('开始扫描目录:', dirPath);
     console.log('扫描选项:', scanOptions);
 
-    if (!fs.existsSync(pythonScriptPath)) {
-        console.error('未找到 Python 脚本:', pythonScriptPath);
-        event.reply('video-list', { error: '未找到 Python 脚本' });
-        return;
-    }
+    try {
+        // 使用ScriptManager确保Python脚本可访问
+        const pythonScriptPath = await scriptManager.ensureScriptAccessible();
 
-    if (!fs.existsSync(dirPath)) {
-        console.error('目录不存在:', dirPath);
-        event.reply('video-list', { error: '指定的目录不存在' });
-        return;
-    }
+        console.log('使用Python脚本路径:', pythonScriptPath);
+        console.log('应用程序是否已打包:', app.isPackaged);
 
-    // 获取当前设置
-    const currentSettings = loadSettings();
-    const maxDepth = scanOptions.scanDepth || currentSettings.scanDepth || 5;
-    const includeHidden = scanOptions.includeHidden || currentSettings.includeHidden || false;
-    const supportedExtensions = scanOptions.supportedExtensions || currentSettings.supportedExtensions || ['.mp4', '.mkv', '.avi', '.mov'];
-
-    // 构建Python命令参数
-    const pythonArgs = [pythonScriptPath, dirPath, `--max-depth=${maxDepth}`];
-
-    if (includeHidden) {
-        pythonArgs.push('--include-hidden');
-    }
-
-    if (supportedExtensions && supportedExtensions.length > 0) {
-        pythonArgs.push(`--extensions=${supportedExtensions.join(',')}`);
-    }
-
-    console.log('Python 命令参数:', pythonArgs);
-
-    const pythonProcess = spawn('python', pythonArgs, {
-        env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-    });
-
-    let output = '';
-    let errorOutput = '';
-    let progressRegex = /进度：(\d+)\/(\d+)/;
-
-    pythonProcess.stdout.on('data', (data) => {
-        const chunk = data.toString('utf-8');
-        output += chunk;
-        console.log('Python 输出:', chunk);
-
-        let match = progressRegex.exec(chunk);
-        if (match) {
-            let current = parseInt(match[1]);
-            let total = parseInt(match[2]);
-            let progress = current / total;
-            mainWindow.webContents.send('scan-progress', progress);
+        // 检查Python是否可用
+        const pythonInfo = pythonManager.getPythonInfo();
+        if (!pythonInfo.available) {
+            console.error('Python运行时不可用');
+            event.reply('video-list', {
+                error: 'Python运行时不可用。请确保已安装Python或联系技术支持。'
+            });
+            return;
         }
-    });
 
-    pythonProcess.stderr.on('data', (data) => {
-        const errorChunk = data.toString('utf-8');
-        errorOutput += errorChunk;
-        console.error('Python 错误:', errorChunk);
-    });
+        if (!pythonScriptPath) {
+            console.error('未找到 Python 脚本');
+            event.reply('video-list', { error: '未找到 Python 脚本' });
+            return;
+        }
 
-    pythonProcess.on('close', (code) => {
-        console.log('Python 进程退出，代码:', code);
-        if (code !== 0) {
-            console.error(`Python 进程异常退出，代码 ${code}`);
-            console.error('错误输出:', errorOutput);
-            event.reply('video-list', { error: `扫描目录失败 (退出代码: ${code})` });
-        } else {
+        if (!fs.existsSync(dirPath)) {
+            console.error('目录不存在:', dirPath);
+            event.reply('video-list', { error: '指定的目录不存在' });
+            return;
+        }
+
+        // 获取当前设置
+        const currentSettings = loadSettings();
+        const maxDepth = scanOptions.scanDepth || currentSettings.scanDepth || 5;
+        const includeHidden = scanOptions.includeHidden || currentSettings.includeHidden || false;
+        const supportedExtensions = scanOptions.supportedExtensions || currentSettings.supportedExtensions || ['.mp4', '.mkv', '.avi', '.mov'];
+
+        // 构建Python命令参数
+        const pythonArgs = [dirPath, `--max-depth=${maxDepth}`];
+
+        if (includeHidden) {
+            pythonArgs.push('--include-hidden');
+        }
+
+        if (supportedExtensions && supportedExtensions.length > 0) {
+            pythonArgs.push(`--extensions=${supportedExtensions.join(',')}`);
+        }
+
+        console.log('Python 信息:', pythonInfo);
+        console.log('Python 命令参数:', pythonArgs);
+
+        try {
+            // 使用PythonManager执行脚本
+            const result = await pythonManager.executePythonScript(pythonScriptPath, pythonArgs, {
+                timeout: 60000, // 60秒超时
+                onProgress: (chunk) => {
+                    console.log('Python 输出:', chunk);
+
+                    // 解析进度信息
+                    const progressRegex = /进度：(\d+)\/(\d+)/;
+                    const match = progressRegex.exec(chunk);
+                    if (match) {
+                        const current = parseInt(match[1]);
+                        const total = parseInt(match[2]);
+                        const progress = current / total;
+                        mainWindow.webContents.send('scan-progress', progress);
+                    }
+                },
+                onError: (errorChunk) => {
+                    console.error('Python 错误:', errorChunk);
+                }
+            });
+
+            // 处理Python脚本执行结果
+            console.log('Python脚本执行成功');
+            const output = result.output;
+
             try {
                 const jsonStart = output.lastIndexOf('\n最终结果:');
                 if (jsonStart === -1) {
@@ -401,12 +448,34 @@ ipcMain.on('scan-directory', (event, dirPath, scanOptions = {}) => {
                 allVideos = processedVideoInfos; // 保存所有视频信息
                 initializeSearch(allVideos); // 初始化搜索功能
                 event.reply('video-list', processedVideoInfos);
-            } catch (error) {
-                console.error('解析 Python 输出失败:', error);
-                event.reply('video-list', { error: '解析视频信息失败: ' + error.message });
+
+            } catch (parseError) {
+                console.error('解析 Python 输出失败:', parseError);
+                event.reply('video-list', { error: '解析视频信息失败: ' + parseError.message });
             }
+
+        } catch (pythonError) {
+            console.error('Python脚本执行失败:', pythonError);
+
+            // 提供更详细的错误信息
+            let errorMessage = '扫描目录失败';
+            if (pythonError.message.includes('退出代码: 9009')) {
+                errorMessage = 'Python运行时未找到。请确保已正确安装Python或联系技术支持。';
+            } else if (pythonError.message.includes('超时')) {
+                errorMessage = '扫描超时。请尝试减少扫描深度或选择较小的目录。';
+            } else {
+                errorMessage = `扫描失败: ${pythonError.message}`;
+            }
+
+            event.reply('video-list', { error: errorMessage });
         }
-    });
+
+    } catch (scriptError) {
+        console.error('脚本管理器错误:', scriptError);
+        event.reply('video-list', {
+            error: `脚本访问失败: ${scriptError.message}`
+        });
+    }
 });
 
 ipcMain.on('play-video', (event, filePath) => {
@@ -751,6 +820,36 @@ ipcMain.handle('open-external', async (event, url) => {
     }
 });
 
+// 打开Python诊断窗口
+ipcMain.handle('open-python-diagnostic', async () => {
+    try {
+        const diagnosticWindow = new BrowserWindow({
+            width: 1000,
+            height: 800,
+            parent: mainWindow,
+            modal: false,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false
+            },
+            title: 'Python诊断工具',
+            icon: path.join(__dirname, 'build', 'icon.ico')
+        });
+
+        diagnosticWindow.loadFile('python-diagnostic.html');
+
+        // 开发模式下打开开发者工具
+        if (process.env.NODE_ENV === 'development') {
+            diagnosticWindow.webContents.openDevTools();
+        }
+
+        return true;
+    } catch (error) {
+        console.error('打开Python诊断窗口失败:', error);
+        return false;
+    }
+});
+
 // 文件监控和自动刷新功能
 ipcMain.handle('start-file-watching', async (event, watchPath) => {
     try {
@@ -836,6 +935,171 @@ ipcMain.handle('clear-path-cache', async () => {
         return { success: true };
     } catch (error) {
         console.error('清理路径缓存失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Python运行时相关的IPC处理程序
+ipcMain.handle('test-python', async () => {
+    try {
+        const result = await pythonManager.testPython();
+        return result;
+    } catch (error) {
+        console.error('测试Python失败:', error);
+        return { available: false, error: error.message };
+    }
+});
+
+ipcMain.handle('get-python-info', async () => {
+    try {
+        return pythonManager.getPythonInfo();
+    } catch (error) {
+        console.error('获取Python信息失败:', error);
+        return { available: false, error: error.message };
+    }
+});
+
+ipcMain.handle('set-python-path', async (event, customPath) => {
+    try {
+        const success = pythonManager.setPythonPath(customPath);
+        return { success, path: customPath };
+    } catch (error) {
+        console.error('设置Python路径失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Python诊断相关的IPC处理程序
+ipcMain.handle('diagnose-python', async () => {
+    try {
+        const { diagnosePython } = require('./diagnose-python.js');
+
+        // 重定向console.log到字符串
+        let diagnosticOutput = '';
+        const originalLog = console.log;
+        console.log = (...args) => {
+            diagnosticOutput += args.join(' ') + '\n';
+            originalLog(...args);
+        };
+
+        await diagnosePython();
+
+        // 恢复console.log
+        console.log = originalLog;
+
+        return { success: true, output: diagnosticOutput };
+    } catch (error) {
+        console.error('Python诊断失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// 重新初始化Python管理器
+ipcMain.handle('reinitialize-python', async () => {
+    try {
+        // 创建新的Python管理器实例
+        const PythonManager = require('./js/pythonManager.js');
+        const newPythonManager = new PythonManager();
+
+        // 替换全局实例
+        Object.assign(pythonManager, newPythonManager);
+
+        const info = pythonManager.getPythonInfo();
+        console.log('Python管理器重新初始化:', info);
+
+        return { success: true, info };
+    } catch (error) {
+        console.error('重新初始化Python管理器失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// 获取Python脚本路径信息（用于诊断）
+ipcMain.handle('get-python-script-info', async () => {
+    try {
+        const possiblePaths = [];
+
+        if (app.isPackaged) {
+            const appPath = path.dirname(process.execPath);
+            possiblePaths.push(
+                path.join(process.resourcesPath, 'py', 'video_info.py'),
+                path.join(appPath, 'py', 'video_info.py'),
+                path.join(appPath, 'resources', 'py', 'video_info.py'),
+                path.join(__dirname, 'py', 'video_info.py')
+            );
+        } else {
+            possiblePaths.push(path.join(__dirname, 'py', 'video_info.py'));
+        }
+
+        const scriptPath = possiblePaths.find(p => fs.existsSync(p));
+
+        const pathInfo = possiblePaths.map(p => ({
+            path: p,
+            exists: fs.existsSync(p),
+            isFile: fs.existsSync(p) ? fs.statSync(p).isFile() : false
+        }));
+
+        return {
+            success: true,
+            isPackaged: app.isPackaged,
+            execPath: process.execPath,
+            resourcesPath: process.resourcesPath,
+            dirname: __dirname,
+            foundScriptPath: scriptPath,
+            allPaths: pathInfo
+        };
+    } catch (error) {
+        console.error('获取Python脚本信息失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Python依赖库检测相关的IPC处理程序
+ipcMain.handle('check-python-dependencies', async () => {
+    try {
+        const result = await dependencyManager.checkAllDependencies();
+        return result;
+    } catch (error) {
+        console.error('检测Python依赖库失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// 安装单个Python库
+ipcMain.handle('install-python-package', async (event, packageInfo) => {
+    try {
+        const result = await dependencyManager.installSinglePackage(packageInfo, (progress) => {
+            // 发送安装进度到渲染进程
+            event.sender.send('install-progress', progress);
+        });
+        return result;
+    } catch (error) {
+        console.error('安装Python库失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// 批量安装所有缺失的Python库
+ipcMain.handle('install-all-python-packages', async (event) => {
+    try {
+        const result = await dependencyManager.installAllMissing((progress) => {
+            // 发送安装进度到渲染进程
+            event.sender.send('install-progress', progress);
+        });
+        return result;
+    } catch (error) {
+        console.error('批量安装Python库失败:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// 获取安装建议
+ipcMain.handle('get-installation-suggestions', async () => {
+    try {
+        const suggestions = dependencyManager.getInstallationSuggestions();
+        return { success: true, suggestions };
+    } catch (error) {
+        console.error('获取安装建议失败:', error);
         return { success: false, error: error.message };
     }
 });
