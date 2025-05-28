@@ -80,24 +80,25 @@ body {
 #select-path {
     padding: 12px 24px;
     color: white;
-    border-color: #adb5bd;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
     border-radius: 8px;
     cursor: pointer;
     font-size: 16px;
     font-weight: 500;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
 }
 
 #select-path:hover {
-    background-color: #45a049;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-    transform: translateY(-1px);
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    transform: translateY(-2px);
 }
 
 #select-path:active {
-    background-color: #3d8b40;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
     transform: translateY(0);
 }
 

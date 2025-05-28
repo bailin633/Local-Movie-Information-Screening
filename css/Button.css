@@ -16,37 +16,9 @@
     overflow: hidden;
 }
 
-#select-path {
-    padding: 8px 24px;
-    background: white;
-    color: #333;
-    border: 2px solid #e0e0e0;
-    border-radius: 0 30px 30px 0; /* 只保留右侧圆角 */
-    cursor: pointer;
-    font-size: 16px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    outline: none;
-    margin-left: -2px; /* 略微向左移动以覆盖输入框的右边框 */
-    height: 44px; /* 确保与输入框高度一致 */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+/* #select-path 样式已移动到 styles.css 中，使用渐变色设计 */
 
-#select-path:hover, #select-path:active {
-    /* 移除所有悬停和激活状态的样式变化 */
-}
-
-#select-path:hover {
-    background: #f8f8f8;
-    border-color: #d0d0d0;
-}
-
-#select-path:active {
-    background: #e8e8e8;
-}
+/* 悬停效果已在 styles.css 中定义 */
 
 
 
