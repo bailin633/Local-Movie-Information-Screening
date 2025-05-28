@@ -960,6 +960,7 @@ ipcMain.handle('open-python-diagnostic', async () => {
             height: 800,
             parent: mainWindow,
             modal: false,
+            autoHideMenuBar: true,
             webPreferences: {
                 nodeIntegration: true,
                 contextIsolation: false
@@ -968,6 +969,8 @@ ipcMain.handle('open-python-diagnostic', async () => {
             icon: path.join(__dirname, 'build', 'icon.png')
         });
 
+        // 隐藏菜单栏
+        diagnosticWindow.setMenu(null);
         diagnosticWindow.loadFile('python-diagnostic.html');
 
         // 开发模式下打开开发者工具
